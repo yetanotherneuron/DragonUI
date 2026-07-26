@@ -102,13 +102,14 @@ end
 local activeSubTab = "player"
 
 local subTabs = {
-    { key = "player",  label = LO["Player"] },
-    { key = "target",  label = LO["Target"] },
-    { key = "focus",   label = LO["Focus"] },
-    { key = "pet",     label = LO["Pet"] },
-    { key = "tot",     label = LO["ToT / ToF"] },
-    { key = "party",   label = LO["Party"] },
-    { key = "boss",    label = LO["Boss"] },
+    { key = "player",   label = LO["Player"] },
+    { key = "target",   label = LO["Target"] },
+    { key = "focus",    label = LO["Focus"] },
+    { key = "pet",      label = LO["Pet"] },
+    { key = "tot",      label = LO["ToT / ToF"] },
+    { key = "party",    label = LO["Party"] },
+    { key = "boss",     label = LO["Boss"] },
+    { key = "resource", label = LO["Personal Resource"] },
 }
 
 -- Search navigation sub-tab setter.
@@ -783,18 +784,172 @@ local function BuildBossSection(scroll)
     })
 end
 
+local function BuildPersonalResourceSection(scroll)
+    local refresh = function()
+        if addon.RefreshPlayerResourceSystem then
+            addon.RefreshPlayerResourceSystem()
+        end
+    end
+
+    local enabled = addon.IsModuleEnabled and addon:IsModuleEnabled("player_resource")
+    if not enabled then
+        C:AddDescription(scroll, LO["Enable Player Resource Display under Modules to configure these options."])
+        return
+    end
+
+    local textFormats = {
+        numeric    = LO["Current Value"],
+        percentage = LO["Percentage"],
+        both       = LO["Numbers + %"],
+        formatted  = LO["Current / Max"],
+    }
+
+    local size = C:AddSection(scroll, LO["Size"])
+    C:AddSlider(size, {
+        label = LO["Width"],
+        dbPath = "modules.player_resource.width",
+        min = 100, max = 400, step = 1,
+        callback = refresh,
+    })
+    C:AddSlider(size, {
+        label = LO["Health Height"],
+        dbPath = "modules.player_resource.health_height",
+        min = 8, max = 40, step = 1,
+        callback = refresh,
+    })
+    C:AddSlider(size, {
+        label = LO["Power Height"],
+        dbPath = "modules.player_resource.power_height",
+        min = 8, max = 40, step = 1,
+        callback = refresh,
+    })
+    C:AddDropdown(size, {
+        label = LO["Bar Texture"],
+        desc = LO["Status bar texture for health and power."],
+        dbPath = "modules.player_resource.bar_texture",
+        values = {
+            blizzard      = LO["Blizzard Classic"],
+            dragonui      = LO["DragonUI (Default)"],
+            blizzard_flat = LO["Flat Solid"],
+            smooth        = LO["Smooth"],
+            aluminium     = LO["Aluminium"],
+            litestep      = LO["LiteStep"],
+        },
+        order = { "blizzard", "dragonui", "blizzard_flat", "smooth", "aluminium", "litestep" },
+        callback = refresh,
+    })
+    C:AddToggle(size, {
+        label = LO["Heal Prediction"],
+        desc = LO["Show incoming heal prediction on the personal resource health bar. Requires Unit Frame Layers to be enabled."],
+        dbPath = "modules.player_resource.heal_prediction",
+        disabled = function()
+            return not (addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers"))
+        end,
+        callback = refresh,
+    })
+    C:AddButton(size, {
+        label = LO["Test Heal Prediction"],
+        desc = LO["Fake low health with incoming heal and absorb overlays for a few seconds."],
+        width = 200,
+        disabled = function()
+            return not (addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers"))
+        end,
+        callback = function()
+            if not (addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers")) then
+                return
+            end
+            if addon.TestPlayerResourceHealPrediction then
+                addon.TestPlayerResourceHealPrediction(8)
+            elseif addon.UFL_TestHealPrediction then
+                addon.UFL_TestHealPrediction(8)
+            end
+        end,
+    })
+
+    local text = C:AddSection(scroll, LO["Text"])
+    C:AddToggle(text, {
+        label = LO["Show Health Text"],
+        dbPath = "modules.player_resource.show_health_text",
+        callback = refresh,
+    })
+    C:AddDropdown(text, {
+        label = LO["Health Text Format"],
+        dbPath = "modules.player_resource.health_text_format",
+        values = textFormats,
+        callback = refresh,
+    })
+    C:AddToggle(text, {
+        label = LO["Show Power Text"],
+        dbPath = "modules.player_resource.show_power_text",
+        callback = refresh,
+    })
+    C:AddDropdown(text, {
+        label = LO["Power Text Format"],
+        dbPath = "modules.player_resource.power_text_format",
+        values = textFormats,
+        callback = refresh,
+    })
+    C:AddSlider(text, {
+        label = LO["Text Size"],
+        dbPath = "modules.player_resource.text_size",
+        min = 8, max = 20, step = 1,
+        callback = refresh,
+    })
+    C:AddToggle(text, {
+        label = LO["Format Large Numbers"],
+        dbPath = "modules.player_resource.break_up_large_numbers",
+        callback = refresh,
+    })
+
+    local vis = C:AddSection(scroll, LO["Show When"])
+    C:AddDescription(vis, LO["Leave all show conditions off to always display the bars. Enable one or more to limit when they appear."])
+    C:AddVisibilityFadeToggles(vis, {
+        dbPrefix = "modules.player_resource",
+        hideInCombat = true,
+        hoverDesc = LO["Only show the personal resource display while the mouse is over it."],
+        combatDesc = LO["Only show the personal resource display while in combat."],
+        hideInCombatDesc = LO["Hide the personal resource display while in combat."],
+        callback = refresh,
+    })
+    C:AddToggle(vis, {
+        label = LO["Show When Health Below"],
+        desc = LO["Show when player health is at or below the percent threshold."],
+        dbPath = "modules.player_resource.show_when_health_below",
+        callback = refresh,
+    })
+    C:AddSlider(vis, {
+        label = LO["Health Below %"],
+        dbPath = "modules.player_resource.health_below_percent",
+        min = 1, max = 100, step = 1,
+        callback = refresh,
+    })
+    C:AddToggle(vis, {
+        label = LO["Show When Power Below"],
+        desc = LO["Show when player power (mana/rage/energy/runic) is at or below the percent threshold."],
+        dbPath = "modules.player_resource.show_when_power_below",
+        callback = refresh,
+    })
+    C:AddSlider(vis, {
+        label = LO["Power Below %"],
+        dbPath = "modules.player_resource.power_below_percent",
+        min = 1, max = 100, step = 1,
+        callback = refresh,
+    })
+end
+
 -- ============================================================================
 -- SUB-TAB DISPATCH
 -- ============================================================================
 
 local subTabBuilders = {
-    player = BuildPlayerSection,
-    target = BuildTargetSection,
-    focus  = BuildFocusSection,
-    pet    = BuildPetSection,
-    tot    = BuildToTSection,
-    party  = BuildPartySection,
-    boss   = BuildBossSection,
+    player   = BuildPlayerSection,
+    target   = BuildTargetSection,
+    focus    = BuildFocusSection,
+    pet      = BuildPetSection,
+    tot      = BuildToTSection,
+    party    = BuildPartySection,
+    boss     = BuildBossSection,
+    resource = BuildPersonalResourceSection,
 }
 
 -- ============================================================================

@@ -227,6 +227,18 @@ local function UnitFrameHealPredictionBars_Update(frame)
 	local myIncomingHeal = UFL_UnitGetIncomingHeals(frame.unit, "player") or 0;
 	local allIncomingHeal = UFL_UnitGetIncomingHeals(frame.unit) or 0;
 	local totalAbsorb = UFL_UnitGetTotalAbsorbs(frame.unit) or 0;
+
+	-- Options preview override (Test Heal Prediction button)
+	local healTest = UnitFrameLayersModule.healTest;
+	if healTest and healTest.activeUntil and GetTime() < healTest.activeUntil then
+		myIncomingHeal = maxHealth * (healTest.myFrac or 0);
+		allIncomingHeal = maxHealth * ((healTest.myFrac or 0) + (healTest.otherFrac or 0));
+		totalAbsorb = maxHealth * (healTest.absorbFrac or 0);
+		if healTest.healthFrac then
+			health = maxHealth * healTest.healthFrac;
+		end
+	end
+
 	local myCurrentHealAbsorb = 0;
 
 	if ( frame.healAbsorbBar ) then
@@ -582,6 +594,151 @@ local function UnitFrameLayer_Initialize(self, myHealPredictionBar, otherHealPre
 	UnitFrameHealPredictionBars_Update(self);
 end
 
+-- Match host health-bar texture (PRD blizzard/smooth/etc.) with stronger tints.
+local function StyleLiteHealOverlays(frame)
+	if not frame then return end
+
+	local healthBar = frame.healthbar
+	local my = frame.myHealPredictionBar
+	local other = frame.otherHealPredictionBar
+	local absorb = frame.totalAbsorbBar
+	local absorbOverlay = frame.totalAbsorbBarOverlay
+	local overAbsorb = frame.overAbsorbGlow
+
+	local barTex = "Interface\\TargetingFrame\\UI-StatusBar"
+	if healthBar and healthBar.GetStatusBarTexture then
+		local sbTex = healthBar:GetStatusBarTexture()
+		if sbTex and sbTex.GetTexture then
+			local path = sbTex:GetTexture()
+			if path and path ~= "" then
+				barTex = path
+			end
+		end
+	end
+
+	if my then
+		local templateFrame = my:GetParent()
+		if templateFrame and healthBar and templateFrame.SetFrameLevel then
+			templateFrame:SetFrameLevel((healthBar:GetFrameLevel() or 0) + 8)
+		end
+		my:SetTexture(barTex)
+		my:SetVertexColor(0.20, 1.00, 1.00, 1) -- bright cyan (my heal)
+		my:SetDrawLayer("OVERLAY", 1)
+	end
+	if other then
+		other:SetTexture(barTex)
+		other:SetVertexColor(0.35, 1.00, 0.45, 1) -- bright lime (other heal)
+		other:SetDrawLayer("OVERLAY", 2)
+	end
+	if absorb then
+		absorb:SetTexture(barTex)
+		absorb:SetVertexColor(0.85, 0.90, 1.00, 0.95) -- bright ice-white shield
+		absorb:SetDrawLayer("OVERLAY", 3)
+	end
+	if absorbOverlay then
+		absorbOverlay:SetVertexColor(1, 1, 1, 0.85)
+		absorbOverlay:SetDrawLayer("OVERLAY", 4)
+	end
+	if overAbsorb then
+		local glowParent = overAbsorb:GetParent()
+		if glowParent and healthBar and glowParent.SetFrameLevel then
+			glowParent:SetFrameLevel((healthBar:GetFrameLevel() or 0) + 10)
+		end
+		overAbsorb:SetVertexColor(1, 1, 1, 1)
+		overAbsorb:SetDrawLayer("OVERLAY", 5)
+	end
+end
+
+local function AttachHealPredictionLite(frame)
+	if not (frame and frame.GetName and frame.healthbar and frame.unit) then
+		return false
+	end
+	if not IsModuleEnabled() then
+		return false
+	end
+
+	local frameName = frame:GetName()
+	if not frameName then
+		return false
+	end
+
+	EnsureLibs()
+
+	if frame.__DragonUI_UFL and frame.__DragonUI_UFL.initialized then
+		StyleLiteHealOverlays(frame)
+		UnitFrameHealPredictionBars_Update(frame)
+		return true
+	end
+
+	if not frame.myHealPredictionBar then
+		CreateFrame("Frame", nil, frame, "DragonUI_StatusBarHealPredictionTemplate")
+	end
+
+	local myHealPredictionBar = _G[frameName .. "FrameMyHealPredictionBar"]
+	local otherHealPredictionBar = _G[frameName .. "FrameOtherHealPredictionBar"]
+	local totalAbsorbBar = _G[frameName .. "TotalAbsorbBar"]
+	local totalAbsorbBarOverlay = _G[frameName .. "TotalAbsorbBarOverlay"]
+	local overAbsorbGlow = _G[frameName .. "FrameOverAbsorbGlow"]
+	local overHealAbsorbGlow = _G[frameName .. "OverHealAbsorbGlow"]
+	local healAbsorbBar = _G[frameName .. "HealAbsorbBar"]
+	local healAbsorbBarLeftShadow = _G[frameName .. "HealAbsorbBarLeftShadow"]
+	local healAbsorbBarRightShadow = _G[frameName .. "HealAbsorbBarRightShadow"]
+	local myManaCostPredictionBar = _G[frameName .. "FrameManaCostPredictionBar"]
+
+	if not (myHealPredictionBar and otherHealPredictionBar and totalAbsorbBar
+		and totalAbsorbBarOverlay and overAbsorbGlow and overHealAbsorbGlow and healAbsorbBar
+		and healAbsorbBarLeftShadow and healAbsorbBarRightShadow and myManaCostPredictionBar) then
+		return false
+	end
+
+	frame.myHealPredictionBar = myHealPredictionBar
+	frame.otherHealPredictionBar = otherHealPredictionBar
+	frame.totalAbsorbBar = totalAbsorbBar
+	frame.totalAbsorbBarOverlay = totalAbsorbBarOverlay
+	frame.overAbsorbGlow = overAbsorbGlow
+	frame.overHealAbsorbGlow = overHealAbsorbGlow
+	frame.healAbsorbBar = healAbsorbBar
+	frame.healAbsorbBarLeftShadow = healAbsorbBarLeftShadow
+	frame.healAbsorbBarRightShadow = healAbsorbBarRightShadow
+	frame.myManaCostPredictionBar = myManaCostPredictionBar
+
+	myManaCostPredictionBar:Hide()
+	StyleLiteHealOverlays(frame)
+
+	frame.myHealPredictionBar:ClearAllPoints()
+	frame.otherHealPredictionBar:ClearAllPoints()
+	frame.totalAbsorbBar:ClearAllPoints()
+
+	frame.totalAbsorbBar.overlay = frame.totalAbsorbBarOverlay
+	frame.totalAbsorbBarOverlay:SetAllPoints(frame.totalAbsorbBar)
+	frame.totalAbsorbBarOverlay.tileSize = 32
+
+	frame.overAbsorbGlow:ClearAllPoints()
+	frame.overAbsorbGlow:SetWidth(16)
+	frame.overAbsorbGlow:SetPoint("TOPLEFT", UFL_VisualHealthBar(frame), "TOPRIGHT", -7, 0)
+	frame.overAbsorbGlow:SetPoint("BOTTOMLEFT", UFL_VisualHealthBar(frame), "BOTTOMRIGHT", -7, 0)
+
+	frame.healAbsorbBar:ClearAllPoints()
+	frame.healAbsorbBar:SetTexture("Interface\\RaidFrame\\Absorb-Fill", true, true)
+
+	frame.overHealAbsorbGlow:ClearAllPoints()
+	frame.overHealAbsorbGlow:SetPoint("BOTTOMRIGHT", UFL_VisualHealthBar(frame), "BOTTOMLEFT", 7, 0)
+	frame.overHealAbsorbGlow:SetPoint("TOPRIGHT", UFL_VisualHealthBar(frame), "TOPLEFT", 7, 0)
+
+	frame.healAbsorbBarLeftShadow:ClearAllPoints()
+	frame.healAbsorbBarRightShadow:ClearAllPoints()
+
+	UnitFrame_RegisterCallback(frame)
+
+	frame.__DragonUI_UFL = frame.__DragonUI_UFL or {}
+	frame.__DragonUI_UFL.initialized = true
+	frame.__DragonUI_UFL.lite = true
+	UnitFrameLayersModule.frames[frameName] = frame
+
+	UnitFrameHealPredictionBars_Update(frame)
+	return true
+end
+
 local function InitializeSingleUnitFrame(frame)
 	if not (frame and frame.GetName) then
 		return
@@ -862,8 +1019,170 @@ local function HideFrameChildren(frame)
 	end
 end
 
+local function DetachHealPredictionLite(frame)
+	if not frame then
+		return
+	end
+	HideFrameChildren(frame)
+	UnitFrame_UnregisterCallback(frame)
+	if frame.__DragonUI_UFL then
+		frame.__DragonUI_UFL.initialized = false
+	end
+	local name = frame.GetName and frame:GetName()
+	if name and UnitFrameLayersModule.frames[name] == frame then
+		UnitFrameLayersModule.frames[name] = nil
+	end
+end
+
+addon.UFL_AttachHealPrediction = AttachHealPredictionLite
+addon.UFL_DetachHealPrediction = DetachHealPredictionLite
+addon.UFL_UpdateHealPrediction = function(frame)
+	if frame and frame.myHealPredictionBar then
+		UnitFrameHealPredictionBars_Update(frame)
+	end
+end
+
+local HEAL_TEST_DURATION = 8
+
+local function ApplyHealTestHealth(frame)
+	local healTest = UnitFrameLayersModule.healTest
+	if not (frame and healTest and healTest.healthFrac) then
+		return
+	end
+
+	local bars = {}
+	if frame.healthbar then
+		table.insert(bars, frame.healthbar)
+	end
+	local visual = UFL_VisualHealthBar(frame)
+	if visual and visual ~= frame.healthbar then
+		table.insert(bars, visual)
+	end
+
+	for _, bar in ipairs(bars) do
+		local _, maxHealth = bar:GetMinMaxValues()
+		if maxHealth and maxHealth > 0 then
+			local ufl = frame.__DragonUI_UFL or {}
+			frame.__DragonUI_UFL = ufl
+			ufl.testSaved = ufl.testSaved or {}
+			if ufl.testSaved[bar] == nil then
+				ufl.testSaved[bar] = bar:GetValue()
+			end
+			bar.lockValues = true
+			bar:SetValue(maxHealth * healTest.healthFrac)
+		end
+	end
+end
+
+local function RestoreHealTestHealth(frame)
+	if not frame then return end
+	local ufl = frame.__DragonUI_UFL
+	local saved = ufl and ufl.testSaved
+	if saved then
+		for bar, value in pairs(saved) do
+			if bar and bar.SetValue then
+				bar.lockValues = false
+				bar:SetValue(value)
+			end
+		end
+		ufl.testSaved = nil
+	end
+	if frame.healthbar then
+		frame.healthbar.lockValues = false
+	end
+	local visual = frame.healthbar and UFL_VisualHealthBar(frame)
+	if visual then
+		visual.lockValues = false
+	end
+end
+
+local function ClearHealPredictionTest()
+	local healTest = UnitFrameLayersModule.healTest
+	local wasActive = healTest and healTest.activeUntil and healTest.activeUntil > 0
+	if not healTest then return end
+
+	healTest.activeUntil = 0
+	if UnitFrameLayersModule.healTestTicker then
+		UnitFrameLayersModule.healTestTicker:SetScript("OnUpdate", nil)
+		UnitFrameLayersModule.healTestTicker = nil
+	end
+
+	for _, frame in pairs(UnitFrameLayersModule.frames) do
+		if frame then
+			RestoreHealTestHealth(frame)
+			if frame.myHealPredictionBar then
+				UnitFrameHealPredictionBars_Update(frame)
+			end
+		end
+	end
+
+	-- Drop temporary PRD attach if heal prediction option is off.
+	if wasActive and addon.RefreshPlayerResourceSystem then
+		addon.RefreshPlayerResourceSystem()
+	end
+end
+
+addon.UFL_IsHealPredictionTestActive = function()
+	local healTest = UnitFrameLayersModule.healTest
+	return healTest and healTest.activeUntil and GetTime() < healTest.activeUntil
+end
+
+local function RefreshHealTestFrames()
+	for _, frame in pairs(UnitFrameLayersModule.frames) do
+		if frame and frame.myHealPredictionBar then
+			ApplyHealTestHealth(frame)
+			UnitFrameHealPredictionBars_Update(frame)
+		end
+	end
+end
+
+-- Temporary visual preview for options (/dui):
+-- health bars drop to ~55%, then fake my-heal / other-heal / absorb overlays paint on top.
+addon.UFL_TestHealPrediction = function(seconds)
+	if not IsModuleEnabled() then
+		return false
+	end
+
+	-- Ensure layers are actually applied so tracked frames exist.
+	if addon.RefreshUnitFrameLayers then
+		addon.RefreshUnitFrameLayers()
+	end
+
+	ClearHealPredictionTest()
+
+	UnitFrameLayersModule.healTest = {
+		activeUntil = GetTime() + (tonumber(seconds) or HEAL_TEST_DURATION),
+		healthFrac = 0.45,
+		myFrac = 0.25,
+		otherFrac = 0.15,
+		absorbFrac = 0.10,
+	}
+
+	RefreshHealTestFrames()
+
+	local ticker = UnitFrameLayersModule.healTestTicker
+	if not ticker then
+		ticker = CreateFrame("Frame", "DragonUI_UFL_HealTestTicker")
+		UnitFrameLayersModule.healTestTicker = ticker
+	end
+	-- Re-apply every frame so Blizzard UNIT_HEALTH / OnUpdate cannot snap health back.
+	ticker:SetScript("OnUpdate", function()
+		if not addon.UFL_IsHealPredictionTestActive() then
+			ClearHealPredictionTest()
+			return
+		end
+		RefreshHealTestFrames()
+	end)
+
+	return true
+end
+
+addon.UFL_ClearHealPredictionTest = ClearHealPredictionTest
+
 local function RestoreUnitFrameLayersSystem()
 	if not UnitFrameLayersModule.applied then return end
+
+	ClearHealPredictionTest()
 
 	-- Restore original global functions
 	if orig_UnitFrameHealthBar_OnUpdate and UnitFrameLayersModule.hooks["UnitFrameHealthBar_OnUpdate_override"] then

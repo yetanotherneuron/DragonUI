@@ -132,6 +132,7 @@ local function MigrateLegacyDefaults()
     if cfg.health_below_percent == nil then cfg.health_below_percent = 35 end
     if cfg.show_when_power_below == nil then cfg.show_when_power_below = false end
     if cfg.power_below_percent == nil then cfg.power_below_percent = 35 end
+    if cfg.heal_prediction == nil then cfg.heal_prediction = false end
 
     local widget = GetWidgetConfig()
     if widget then
@@ -286,28 +287,69 @@ local function FormatBarText(current, maximum, textFormat, useBreakup)
     return cur .. " / " .. maxv
 end
 
+local function EnsureBarTextFrame(bar)
+    if not bar or bar.textFrame then return end
+    local parent = bar:GetParent() or UIParent
+    local tf = CreateFrame("Frame", nil, parent)
+    tf:SetAllPoints(bar)
+    -- Stay above heal/absorb overlays (lite attach uses healthLevel+8/+10).
+    tf:SetFrameLevel((bar:GetFrameLevel() or 0) + 20)
+    bar.textFrame = tf
+end
+
+local function RaiseBarTextFrame(bar)
+    if not bar then return end
+    EnsureBarTextFrame(bar)
+    local tf = bar.textFrame
+    if not tf then return end
+    tf:ClearAllPoints()
+    tf:SetAllPoints(bar)
+    tf:SetFrameLevel((bar:GetFrameLevel() or 0) + 20)
+
+    -- Keep existing strings on the topmost text frame (above heal overlays).
+    local function Adopt(fs, point, relPoint, x, y, justify)
+        if not fs then return end
+        fs:SetParent(tf)
+        fs:SetDrawLayer("OVERLAY", 7)
+        fs:ClearAllPoints()
+        fs:SetPoint(point, tf, relPoint or point, x or 0, y or 0)
+        if justify then fs:SetJustifyH(justify) end
+    end
+    Adopt(bar.textCenter, "CENTER", "CENTER", 0, 0, "CENTER")
+    Adopt(bar.textLeft, "LEFT", "LEFT", 4, 0, "LEFT")
+    Adopt(bar.textRight, "RIGHT", "RIGHT", -4, 0, "RIGHT")
+end
+
 local function EnsureBarTexts(bar)
-    if bar.textCenter then return end
+    if bar.textCenter then
+        RaiseBarTextFrame(bar)
+        return
+    end
+    EnsureBarTextFrame(bar)
+    local host = bar.textFrame or bar
     local fontPath = GetBarFontPath()
     local size = DEFAULT_TEXT_SIZE
 
-    local center = bar:CreateFontString(nil, "OVERLAY")
+    local center = host:CreateFontString(nil, "OVERLAY")
+    center:SetDrawLayer("OVERLAY", 7)
     center:SetFont(fontPath, size, "OUTLINE")
-    center:SetPoint("CENTER", bar, "CENTER", 0, 0)
+    center:SetPoint("CENTER", host, "CENTER", 0, 0)
     center:SetJustifyH("CENTER")
     center:SetTextColor(1, 1, 1, 1)
     bar.textCenter = center
 
-    local left = bar:CreateFontString(nil, "OVERLAY")
+    local left = host:CreateFontString(nil, "OVERLAY")
+    left:SetDrawLayer("OVERLAY", 7)
     left:SetFont(fontPath, size, "OUTLINE")
-    left:SetPoint("LEFT", bar, "LEFT", 4, 0)
+    left:SetPoint("LEFT", host, "LEFT", 4, 0)
     left:SetJustifyH("LEFT")
     left:SetTextColor(1, 1, 1, 1)
     bar.textLeft = left
 
-    local right = bar:CreateFontString(nil, "OVERLAY")
+    local right = host:CreateFontString(nil, "OVERLAY")
+    right:SetDrawLayer("OVERLAY", 7)
     right:SetFont(fontPath, size, "OUTLINE")
-    right:SetPoint("RIGHT", bar, "RIGHT", -4, 0)
+    right:SetPoint("RIGHT", host, "RIGHT", -4, 0)
     right:SetJustifyH("RIGHT")
     right:SetTextColor(1, 1, 1, 1)
     bar.textRight = right
@@ -315,6 +357,7 @@ end
 
 local function ApplyBarTextSize(bar, size)
     if not bar then return end
+    RaiseBarTextFrame(bar)
     local fontPath = GetBarFontPath()
     if bar.textCenter then bar.textCenter:SetFont(fontPath, size, "OUTLINE") end
     if bar.textLeft then bar.textLeft:SetFont(fontPath, size, "OUTLINE") end
@@ -348,8 +391,61 @@ end
 local function ApplyTextStyle()
     local frames = PlayerResourceModule.frames
     local textCfg = GetTextConfig()
+    RaiseBarTextFrame(frames.health)
+    RaiseBarTextFrame(frames.power)
     ApplyBarTextSize(frames.health, textCfg.textSize)
     ApplyBarTextSize(frames.power, textCfg.textSize)
+end
+
+-- ============================================================================
+-- HEAL PREDICTION
+-- ============================================================================
+
+local function IsHealPredictionEnabled()
+    local cfg = GetModuleConfig()
+    if not cfg or cfg.heal_prediction ~= true then
+        return false
+    end
+    return addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers")
+end
+
+local function GetLayersHost()
+    local frames = PlayerResourceModule.frames
+    local container = frames.container
+    if not container or not frames.health then
+        return nil
+    end
+    container.unit = "player"
+    container.healthbar = frames.health
+    return container
+end
+
+local function SyncHealPrediction()
+    local host = GetLayersHost()
+    if not host then return end
+
+    if IsHealPredictionEnabled() and addon.UFL_AttachHealPrediction then
+        -- Apply bar texture first so lite overlays can copy the StatusBar texture.
+        ApplyHealthBarStyle(PlayerResourceModule.frames.health)
+        addon.UFL_AttachHealPrediction(host)
+        if addon.UFL_UpdateHealPrediction then
+            addon.UFL_UpdateHealPrediction(host)
+        end
+        -- Heal overlays raise frame levels; keep value text above them.
+        RaiseBarTextFrame(PlayerResourceModule.frames.health)
+        RaiseBarTextFrame(PlayerResourceModule.frames.power)
+    elseif addon.UFL_DetachHealPrediction then
+        addon.UFL_DetachHealPrediction(host)
+    end
+end
+
+local function UpdateHealPrediction()
+    if not IsHealPredictionEnabled() then return end
+    local host = GetLayersHost()
+    if host and addon.UFL_UpdateHealPrediction then
+        addon.UFL_UpdateHealPrediction(host)
+    end
+    RaiseBarTextFrame(PlayerResourceModule.frames.health)
 end
 
 -- ============================================================================
@@ -432,6 +528,9 @@ local function LayoutBars()
     frames.power:SetPoint("TOPLEFT", frames.health, "BOTTOMLEFT", 0, -DIVIDER_SIZE)
 
     HideLegacyClassHost()
+    RaiseBarTextFrame(frames.health)
+    RaiseBarTextFrame(frames.power)
+    UpdateHealPrediction()
 end
 
 local function ApplyWidgetPosition()
@@ -569,16 +668,21 @@ UpdateHealth = function()
     local textCfg = GetTextConfig()
     local maxHealth = UnitHealthMax("player") or 0
     local curHealth = UnitHealth("player") or 0
+    if addon.UFL_IsHealPredictionTestActive and addon.UFL_IsHealPredictionTestActive() and maxHealth > 0 then
+        curHealth = maxHealth * 0.45
+    end
     if maxHealth <= 0 then
         health:SetMinMaxValues(0, 1)
         health:SetValue(0)
         SetBarText(health, textCfg.showHealth, 0, 1, textCfg.healthFormat, textCfg.breakUp)
+        UpdateHealPrediction()
         return
     end
     health:SetMinMaxValues(0, maxHealth)
     health:SetValue(curHealth)
     ApplyHealthBarStyle(health)
     SetBarText(health, textCfg.showHealth, curHealth, maxHealth, textCfg.healthFormat, textCfg.breakUp)
+    UpdateHealPrediction()
 end
 
 UpdatePower = function()
@@ -809,6 +913,7 @@ local function Apply()
 
     if PlayerResourceModule.applied then
         UpdateWidgets()
+        SyncHealPrediction()
         RefreshVisibility()
         return
     end
@@ -823,6 +928,7 @@ local function Apply()
         PlayerResourceModule.frames.eventFrame = eventFrame
     end
     RegisterEvents(eventFrame)
+    SyncHealPrediction()
     PlayerResourceModule.applied = true
     RefreshVisibility()
 end
@@ -830,6 +936,9 @@ end
 local function Restore()
     UnregisterEvents()
     local frames = PlayerResourceModule.frames
+    if frames.container and addon.UFL_DetachHealPrediction then
+        addon.UFL_DetachHealPrediction(frames.container)
+    end
     if frames.container then frames.container:Hide() end
     HideLegacyClassHost()
     if frames.anchor then frames.anchor:Hide() end
@@ -851,6 +960,40 @@ function addon.RefreshPlayerResourceSystem()
     else
         Restore()
     end
+end
+
+-- Force-show PRD and attach overlays for the UFL heal-prediction preview button.
+function addon.TestPlayerResourceHealPrediction(seconds)
+    if not (addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers")) then
+        return false
+    end
+
+    local ok = addon.UFL_TestHealPrediction and addon.UFL_TestHealPrediction(seconds)
+    if not ok then
+        return false
+    end
+
+    if IsModuleEnabled() then
+        EnsureFrames()
+        UpdateWidgets()
+        SetVisible(true)
+        local host = GetLayersHost()
+        if host and addon.UFL_AttachHealPrediction then
+            addon.UFL_AttachHealPrediction(host)
+        end
+        -- Keep PRD health locked to the fake preview value while the test runs.
+        local health = PlayerResourceModule.frames.health
+        if health then
+            local maxHealth = UnitHealthMax("player") or 0
+            if maxHealth > 0 then
+                health:SetMinMaxValues(0, maxHealth)
+                health:SetValue(maxHealth * 0.45)
+            end
+        end
+        UpdateHealPrediction()
+    end
+
+    return true
 end
 
 local function Initialize()

@@ -438,8 +438,22 @@ local function BuildEnhancementsTab(scroll)
                 addon.RefreshUnitFrameLayers()
             end
         end,
-        disabled = function() return not IsEnabled("unitframe_layers") end,
+		disabled = function() return not IsEnabled("unitframe_layers") end,
         requiresReload = false,
+    })
+
+    C:AddButton(uflSection, {
+        label = LO["Test Heal Prediction"],
+        desc = LO["Fake low health with incoming heal and absorb overlays for a few seconds."],
+        width = 200,
+        disabled = function() return not IsEnabled("unitframe_layers") end,
+        callback = function()
+            if addon.TestPlayerResourceHealPrediction then
+                addon.TestPlayerResourceHealPrediction(8)
+            elseif addon.UFL_TestHealPrediction then
+                addon.UFL_TestHealPrediction(8)
+            end
+        end,
     })
 
     -- ====================================================================

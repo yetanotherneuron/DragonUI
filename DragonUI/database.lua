@@ -828,6 +828,7 @@ local defaults = {
                 text_size = 11,
                 break_up_large_numbers = true,
                 bar_texture = "blizzard", -- dragonui | blizzard | blizzard_flat | smooth | aluminium | litestep
+                heal_prediction = false, -- Incoming heal overlays (requires unitframe_layers)
                 -- Show When
                 show_on_hover = false,
                 show_in_combat = false,
