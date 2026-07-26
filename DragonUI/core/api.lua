@@ -773,6 +773,186 @@ local function GetDetachedResetActionForSelection()
     return nil, frameData
 end
 
+-- Copy only position-related keys from defaults into the live profile table.
+local function CopyPositionDefaults(dst, src)
+    if type(dst) ~= "table" or type(src) ~= "table" then
+        return false
+    end
+
+    local keys = {
+        "anchor", "posX", "posY", "x", "y",
+        "x_position", "y_position", "y_offset",
+        "manual_position", "custom_position", "override",
+    }
+    local copied = false
+    for _, key in ipairs(keys) do
+        if src[key] ~= nil then
+            dst[key] = src[key]
+            copied = true
+        end
+    end
+    return copied
+end
+
+local function ApplyDefaultPointToFrame(frame, cfg)
+    if not frame or type(cfg) ~= "table" then
+        return
+    end
+
+    local anchor = cfg.anchor or "CENTER"
+    local x = cfg.posX
+    if x == nil then
+        x = cfg.x
+    end
+    if x == nil then
+        x = cfg.x_position
+    end
+    x = x or 0
+
+    local y = cfg.posY
+    if y == nil then
+        y = cfg.y
+    end
+    if y == nil then
+        y = cfg.y_position
+    end
+    if y == nil then
+        y = cfg.y_offset
+    end
+    y = y or 0
+
+    frame:ClearAllPoints()
+    frame:SetPoint(anchor, UIParent, anchor, x, y)
+end
+
+local function ResetConfigPathPosition(frameData)
+    if not frameData or not frameData.configPath then
+        return false
+    end
+
+    local defaultsRoot = addon.defaults and addon.defaults.profile
+    local profile = addon.db and addon.db.profile
+    if not defaultsRoot or not profile then
+        return false
+    end
+
+    local path = frameData.configPath
+    if #path == 2 then
+        local section, key = path[1], path[2]
+        local defCfg = defaultsRoot[section] and defaultsRoot[section][key]
+        if not defCfg then
+            return false
+        end
+
+        profile[section] = profile[section] or {}
+        profile[section][key] = profile[section][key] or {}
+
+        if section == "widgets" then
+            -- Widgets are almost entirely position data; restore full default entry.
+            profile.widgets[key] = addon.DeepCopy(defCfg, {})
+            if frameData.frame then
+                if addon.ApplyWidgetPositionFromDB then
+                    addon.ApplyWidgetPositionFromDB(key, frameData.frame)
+                else
+                    ApplyDefaultPointToFrame(frameData.frame, profile.widgets[key])
+                end
+            end
+        else
+            CopyPositionDefaults(profile[section][key], defCfg)
+            ApplyDefaultPointToFrame(frameData.frame, profile[section][key])
+        end
+
+        if frameData.UpdateWidgets then
+            frameData.UpdateWidgets()
+        elseif frameData.onNudge then
+            frameData.onNudge()
+        end
+        return true
+    elseif #path == 1 then
+        local key = path[1]
+        local defCfg = defaultsRoot[key]
+        if type(defCfg) ~= "table" then
+            return false
+        end
+        profile[key] = profile[key] or {}
+        CopyPositionDefaults(profile[key], defCfg)
+        ApplyDefaultPointToFrame(frameData.frame, profile[key])
+        if frameData.UpdateWidgets then
+            frameData.UpdateWidgets()
+        elseif frameData.onNudge then
+            frameData.onNudge()
+        end
+        return true
+    end
+
+    return false
+end
+
+local function ResetNamedProfilePosition(frameName, frameData)
+    local defaultsRoot = addon.defaults and addon.defaults.profile
+    local profile = addon.db and addon.db.profile
+    if not frameName or not defaultsRoot or not profile then
+        return false
+    end
+
+    local defCfg = defaultsRoot[frameName]
+    if type(defCfg) ~= "table" then
+        return false
+    end
+    if defCfg.anchor == nil and defCfg.posX == nil and defCfg.x == nil and defCfg.x_position == nil then
+        return false
+    end
+
+    profile[frameName] = profile[frameName] or {}
+    CopyPositionDefaults(profile[frameName], defCfg)
+    ApplyDefaultPointToFrame(frameData and frameData.frame, profile[frameName])
+    if frameData and frameData.UpdateWidgets then
+        frameData.UpdateWidgets()
+    elseif frameData and frameData.onNudge then
+        frameData.onNudge()
+    elseif frameData and frameData.onHide then
+        frameData.onHide()
+    end
+    return true
+end
+
+-- Returns a reset action for the currently selected editable frame (any widget).
+local function GetSelectedResetAction()
+    local frameName, frameData = GetSelectedEditableFrameData()
+    if not frameName or not frameData then
+        return nil, nil
+    end
+
+    -- Prefer specialized detached resets (re-attach / clear override flags).
+    local specialAction = GetDetachedResetActionForSelection()
+    if specialAction then
+        return specialAction, frameData
+    end
+
+    if type(frameData.resetToDefault) == "function" then
+        return function()
+            frameData.resetToDefault()
+        end, frameData
+    end
+
+    if frameData.configPath then
+        return function()
+            ResetConfigPathPosition(frameData)
+        end, frameData
+    end
+
+    -- Custom movers that store position under profile[frameName] (questtracker, lootroll, …)
+    local defaultsRoot = addon.defaults and addon.defaults.profile
+    local defCfg = defaultsRoot and defaultsRoot[frameName]
+    if type(defCfg) == "table" and (defCfg.anchor ~= nil or defCfg.x ~= nil or defCfg.posX ~= nil) then
+        return function()
+            ResetNamedProfilePosition(frameName, frameData)
+        end, frameData
+    end
+
+    return nil, frameData
+end
+
 local function GetLFGTooltipPositionValue()
     local widgets = addon.db and addon.db.profile and addon.db.profile.widgets
     local lfgFrameConfig = widgets and widgets.lfgframe
@@ -865,7 +1045,7 @@ local function UpdateEditorPanelResetButton()
 
     UpdateEditorPanelLFGTooltipControls()
 
-    local action = GetDetachedResetActionForSelection()
+    local action = GetSelectedResetAction()
     if action then
         editorPanel.resetSelectedButton._dragonuiAction = action
         editorPanel.resetSelectedButton:Show()
@@ -1126,11 +1306,19 @@ local function CreateEditorControlPanel()
     local resetSelectedButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetSelectedButton:SetSize(160, 20)
     resetSelectedButton:SetPoint("BOTTOM", panel, "BOTTOM", 0, 6)
-    resetSelectedButton:SetText((addon.L and addon.L["Click to reset"]) or "Reset")
+    resetSelectedButton:SetText((addon.L and addon.L["Reset to Default"]) or "Reset to Default")
     resetSelectedButton:SetFrameLevel(panel:GetFrameLevel() + 5)
     StyleEditorPanelButton(resetSelectedButton)
     resetSelectedButton:SetScript("OnClick", function(self)
-        local action, frameData = GetDetachedResetActionForSelection()
+        if InCombatLockdown() then
+            local L = addon.L
+            if addon.Print then
+                addon:Print((L and L["Cannot reset positions during combat!"]) or "Cannot reset positions during combat!")
+            end
+            return
+        end
+
+        local action, frameData = GetSelectedResetAction()
         if not action then
             self:Hide()
             return
