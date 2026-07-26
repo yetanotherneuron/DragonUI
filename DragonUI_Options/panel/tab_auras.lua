@@ -209,6 +209,11 @@ local function IsAuraBordersEnabled()
     return GetAuraBordersField("enabled") == true
 end
 
+local function UseDebuffDispelColors()
+    -- Default true (nil counts as on) so Magic/Curse/Poison/Disease stay visible.
+    return GetAuraBordersField("use_dispel_colors") ~= false
+end
+
 local function RefreshAuraBorders()
     if addon.RefreshAuraBordersSystem then
         addon.RefreshAuraBordersSystem()
@@ -271,6 +276,22 @@ local function BuildAurasTab(scroll)
         hasAlpha = false,
     })
 
+    C:AddToggle(borderSection, {
+        label = LO["Use Dispel-Type Colors"],
+        desc = LO["Color debuff borders by Magic, Curse, Poison, Disease, or none. Turn off to use Debuff Border Color instead."],
+        getFunc = function() return UseDebuffDispelColors() end,
+        setFunc = function(val)
+            C:EnsureModuleTable("auraborders").use_dispel_colors = val
+        end,
+        callback = function()
+            RefreshAuraBorders()
+            -- Rebuild so the debuff color picker / copy buttons enable-state refresh.
+            Panel:SelectTab("auras")
+        end,
+        disabled = function() return not IsAuraBordersEnabled() end,
+        requiresReload = false,
+    })
+
     C:AddColorPicker(borderSection, {
         label = LO["Debuff Border Color"],
         getFunc = function()
@@ -285,7 +306,9 @@ local function BuildAurasTab(scroll)
             ab.debuff_color_user_override = true
         end,
         callback = RefreshAuraBorders,
-        disabled = function() return not IsAuraBordersEnabled() end,
+        disabled = function()
+            return not IsAuraBordersEnabled() or UseDebuffDispelColors()
+        end,
         hasAlpha = false,
     })
 
@@ -308,7 +331,9 @@ local function BuildAurasTab(scroll)
         label = LO["Copy Buff Color to Debuff"],
         desc = LO["Set debuff border color to match the current buff border color."],
         width = 210,
-        disabled = function() return not IsAuraBordersEnabled() end,
+        disabled = function()
+            return not IsAuraBordersEnabled() or UseDebuffDispelColors()
+        end,
         callback = function()
             CopyAuraBorderColor("buff_color", "debuff_color", "debuff_color_user_override")
         end,
@@ -317,7 +342,9 @@ local function BuildAurasTab(scroll)
         label = LO["Copy Debuff Color to Buff"],
         desc = LO["Set buff border color to match the current debuff border color."],
         width = 210,
-        disabled = function() return not IsAuraBordersEnabled() end,
+        disabled = function()
+            return not IsAuraBordersEnabled() or UseDebuffDispelColors()
+        end,
         callback = function()
             CopyAuraBorderColor("debuff_color", "buff_color", "buff_color_user_override")
         end,

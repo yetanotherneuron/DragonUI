@@ -420,8 +420,22 @@ end
 local PREVIEW_ICON_SIZE = 30
 local PREVIEW_BUFF_TEXTURE = "Interface\\Icons\\Spell_Holy_WordFortitude"
 local PREVIEW_DEBUFF_TEXTURE = "Interface\\Icons\\Spell_Shadow_CurseOfMannoroth"
+-- Cycle through Blizzard dispel types so Layout Preview can show Use Dispel-Type Colors.
+local PREVIEW_DISPEL_TYPES = { "none", "Magic", "Curse", "Poison", "Disease" }
 local previewBuffButtons = {}
 local previewDebuffButtons = {}
+
+local function ApplyPreviewDebuffDispelColor(button, index)
+    local border = button and button.Border
+    if not border then return end
+    local dtype = PREVIEW_DISPEL_TYPES[((index - 1) % #PREVIEW_DISPEL_TYPES) + 1]
+    local c = DebuffTypeColor and DebuffTypeColor[dtype]
+    if c then
+        border:SetVertexColor(c.r, c.g, c.b)
+    else
+        border:SetVertexColor(0.8, 0, 0)
+    end
+end
 
 local function IsLayoutPreviewEnabled()
     local cfg = GetBuffsConfig()
@@ -464,7 +478,6 @@ local function AcquirePreviewIcon(pool, index, isDebuff)
             local border = button:CreateTexture(nil, "OVERLAY")
             border:SetTexture("Interface\\Buttons\\UI-Debuff-Overlays")
             border:SetTexCoord(0.296875, 0.5703125, 0, 0.515625)
-            border:SetVertexColor(0.8, 0.1, 0.1)
             border:SetSize(33, 32)
             border:SetPoint("CENTER")
             button.Border = border
@@ -476,6 +489,9 @@ local function AcquirePreviewIcon(pool, index, isDebuff)
         pool[index] = button
     end
     button.label:SetText(tostring(index))
+    if isDebuff then
+        ApplyPreviewDebuffDispelColor(button, index)
+    end
     return button
 end
 

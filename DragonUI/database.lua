@@ -851,7 +851,9 @@ local defaults = {
             auraborders = {
                 enabled = true, -- Modern DF-style borders on buff/debuff icons (player/target/focus)
                 buff_color = { r = 0.2, g = 0.2, b = 0.2 }, -- neutral buff chrome over white mask
-                debuff_color = { r = 0.2, g = 0.2, b = 0.2 }, -- neutral debuff chrome (same default as buff)
+                debuff_color = { r = 0.2, g = 0.2, b = 0.2 }, -- used when use_dispel_colors is false
+                -- When true, debuffs keep Blizzard Magic/Curse/Poison/Disease/none colors.
+                use_dispel_colors = true,
                 custom_border = true, -- border style: true = rounded (custom texture overlay), false = square (solid lines)
                 -- When true, login ApplyDarkMode must not overwrite buff_color (user set it in Auras).
                 buff_color_user_override = false,

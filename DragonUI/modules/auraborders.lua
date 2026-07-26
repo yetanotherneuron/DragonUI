@@ -90,6 +90,12 @@ local function GetDebuffColor()
     return 0.2, 0.2, 0.2
 end
 
+local function UseDispelColors()
+    local cfg = GetConfig()
+    -- Default true so existing profiles keep Magic/Curse/Poison/Disease borders.
+    return not cfg or cfg.use_dispel_colors ~= false
+end
+
 -- Soft-edged frame texture vanishes faster than the solid icon at the same alpha.
 -- 0 = chrome stays opaque; 1 = match button SetAlpha. Tune here (not an options slider).
 local BORDER_EXPIRY_FADE = 0.4
@@ -424,7 +430,16 @@ local function StyleAura(button, isDebuff, stockBorderName, isUnit)
     local stock = (stockBorderName and _G[stockBorderName]) or button.Border
     local r, g, b
     if isDebuff then
-        r, g, b = GetDebuffColor()
+        if UseDispelColors() then
+            if stock then
+                r, g, b = stock:GetVertexColor()
+            else
+                local none = DebuffTypeColor and DebuffTypeColor["none"]
+                r, g, b = none and none.r or 0.8, none and none.g or 0, none and none.b or 0
+            end
+        else
+            r, g, b = GetDebuffColor()
+        end
     else
         r, g, b = GetBuffColor()
     end
