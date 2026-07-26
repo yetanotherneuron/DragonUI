@@ -696,6 +696,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "Af
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "Style de bordure"
+L["Buff Border Color"] = "Couleur de bordure des améliorations"
+L["Debuff Border Color"] = "Couleur de bordure des affaiblissements"
+L["Copy Buff Color to Debuff"] = "Copier la couleur buff vers debuff"
+L["Copy Debuff Color to Buff"] = "Copier la couleur debuff vers buff"
+L["Set debuff border color to match the current buff border color."] = "Définit la couleur de bordure des affaiblissements sur celle des améliorations."
+L["Set buff border color to match the current debuff border color."] = "Définit la couleur de bordure des améliorations sur celle des affaiblissements."
 L["Gold Display"] = "Affichage Or"
 L["Text Only"] = "Texte seul"
 L["Gold Icons"] = "Icônes d'Or"

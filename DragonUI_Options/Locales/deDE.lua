@@ -1528,6 +1528,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "Ze
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "Rahmenstil"
+L["Buff Border Color"] = "Buff-Rahmenfarbe"
+L["Debuff Border Color"] = "Debuff-Rahmenfarbe"
+L["Copy Buff Color to Debuff"] = "Buff-Farbe auf Debuff kopieren"
+L["Copy Debuff Color to Buff"] = "Debuff-Farbe auf Buff kopieren"
+L["Set debuff border color to match the current buff border color."] = "Setzt die Debuff-Rahmenfarbe auf die aktuelle Buff-Rahmenfarbe."
+L["Set buff border color to match the current debuff border color."] = "Setzt die Buff-Rahmenfarbe auf die aktuelle Debuff-Rahmenfarbe."
 L["Rounded"] = "Abgerundet"
 L["Square"] = "Eckig"
 

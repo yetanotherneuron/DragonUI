@@ -1528,6 +1528,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "�
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "테두리 스타일"
+L["Buff Border Color"] = "버프 테두리 색상"
+L["Debuff Border Color"] = "디버프 테두리 색상"
+L["Copy Buff Color to Debuff"] = "버프 색상을 디버프에 복사"
+L["Copy Debuff Color to Buff"] = "디버프 색상을 버프에 복사"
+L["Set debuff border color to match the current buff border color."] = "디버프 테두리 색상을 현재 버프 테두리 색상과 같게 설정합니다."
+L["Set buff border color to match the current debuff border color."] = "버프 테두리 색상을 현재 디버프 테두리 색상과 같게 설정합니다."
 L["Rounded"] = "둥근 모서리"
 L["Square"] = "각진 모서리"
 

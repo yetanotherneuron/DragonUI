@@ -271,6 +271,58 @@ local function BuildAurasTab(scroll)
         hasAlpha = false,
     })
 
+    C:AddColorPicker(borderSection, {
+        label = LO["Debuff Border Color"],
+        getFunc = function()
+            local c = GetAuraBordersField("debuff_color")
+            if c and c.r then return c.r, c.g, c.b end
+            return 0.2, 0.2, 0.2
+        end,
+        setFunc = function(r, g, b)
+            local ab = C:EnsureModuleTable("auraborders")
+            ab.debuff_color = { r = r, g = g, b = b }
+            -- Keep this color across reloads even if Dark Mode stays enabled.
+            ab.debuff_color_user_override = true
+        end,
+        callback = RefreshAuraBorders,
+        disabled = function() return not IsAuraBordersEnabled() end,
+        hasAlpha = false,
+    })
+
+    local function CopyAuraBorderColor(fromKey, toKey, toOverrideKey)
+        local ab = C:EnsureModuleTable("auraborders")
+        local src = ab[fromKey]
+        local r, g, b = 0.2, 0.2, 0.2
+        if src and src.r then
+            r, g, b = src.r, src.g, src.b
+        end
+        ab[toKey] = { r = r, g = g, b = b }
+        ab[toOverrideKey] = true
+        RefreshAuraBorders()
+        -- Rebuild so color picker swatches reflect the copied values.
+        Panel:SelectTab("auras")
+    end
+
+    local colorSyncRow = C:AddRow(borderSection)
+    C:AddButton(colorSyncRow, {
+        label = LO["Copy Buff Color to Debuff"],
+        desc = LO["Set debuff border color to match the current buff border color."],
+        width = 210,
+        disabled = function() return not IsAuraBordersEnabled() end,
+        callback = function()
+            CopyAuraBorderColor("buff_color", "debuff_color", "debuff_color_user_override")
+        end,
+    })
+    C:AddButton(colorSyncRow, {
+        label = LO["Copy Debuff Color to Buff"],
+        desc = LO["Set buff border color to match the current debuff border color."],
+        width = 210,
+        disabled = function() return not IsAuraBordersEnabled() end,
+        callback = function()
+            CopyAuraBorderColor("debuff_color", "buff_color", "buff_color_user_override")
+        end,
+    })
+
     C:AddSpacer(scroll)
 
     -- ====================================================================

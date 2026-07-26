@@ -690,6 +690,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "Mo
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "Estilo da borda"
+L["Buff Border Color"] = "Cor da borda de buff"
+L["Debuff Border Color"] = "Cor da borda de debuff"
+L["Copy Buff Color to Debuff"] = "Copiar cor de buff para debuff"
+L["Copy Debuff Color to Buff"] = "Copiar cor de debuff para buff"
+L["Set debuff border color to match the current buff border color."] = "Define a cor da borda de debuff para corresponder à cor atual da borda de buff."
+L["Set buff border color to match the current debuff border color."] = "Define a cor da borda de buff para corresponder à cor atual da borda de debuff."
 L["Gold Display"] = "Exibição de Ouro"
 L["Text Only"] = "Apenas Texto"
 L["Gold Icons"] = "Ícones de Ouro"

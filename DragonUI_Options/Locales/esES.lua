@@ -1506,6 +1506,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "Mo
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "Estilo del borde"
+L["Buff Border Color"] = "Color del borde de beneficios"
+L["Debuff Border Color"] = "Color del borde de perjuicios"
+L["Copy Buff Color to Debuff"] = "Copiar color de beneficio a perjuicio"
+L["Copy Debuff Color to Buff"] = "Copiar color de perjuicio a beneficio"
+L["Set debuff border color to match the current buff border color."] = "Establece el color del borde de perjuicios para que coincida con el de beneficios."
+L["Set buff border color to match the current debuff border color."] = "Establece el color del borde de beneficios para que coincida con el de perjuicios."
 L["Rounded"] = "Redondeado"
 L["Square"] = "Cuadrado"
 

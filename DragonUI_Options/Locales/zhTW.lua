@@ -1500,6 +1500,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "�
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "邊框樣式"
+L["Buff Border Color"] = "增益邊框顏色"
+L["Debuff Border Color"] = "減益邊框顏色"
+L["Copy Buff Color to Debuff"] = "將增益顏色複製到減益"
+L["Copy Debuff Color to Buff"] = "將減益顏色複製到增益"
+L["Set debuff border color to match the current buff border color."] = "將減益邊框顏色設為與目前增益邊框顏色相同。"
+L["Set buff border color to match the current debuff border color."] = "將增益邊框顏色設為與目前減益邊框顏色相同。"
 L["Rounded"] = "圓角"
 L["Square"] = "方形"
 

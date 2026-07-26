@@ -1525,6 +1525,12 @@ L["Showing top %d results. Type at least 3 characters for the full list."] = "П
 
 -- Aura Borders: border style dropdown
 L["Border Style"] = "Стиль рамки"
+L["Buff Border Color"] = "Цвет рамки баффа"
+L["Debuff Border Color"] = "Цвет рамки дебаффа"
+L["Copy Buff Color to Debuff"] = "Копировать цвет баффа на дебафф"
+L["Copy Debuff Color to Buff"] = "Копировать цвет дебаффа на бафф"
+L["Set debuff border color to match the current buff border color."] = "Устанавливает цвет рамки дебаффа равным текущему цвету рамки баффа."
+L["Set buff border color to match the current debuff border color."] = "Устанавливает цвет рамки баффа равным текущему цвету рамки дебаффа."
 L["Rounded"] = "Скруглённый"
 L["Square"] = "Прямоугольный"
 
