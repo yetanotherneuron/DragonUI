@@ -76,6 +76,11 @@ local defaults = {
                 posX = 0,
                 posY = 200
             },
+            player_resource = {
+                anchor = "CENTER",
+                posX = 0,
+                posY = -220
+            },
             targetCastbar = {
                 anchor = "CENTER",
                 posX = 0,
@@ -809,6 +814,19 @@ local defaults = {
                     max_duration_minutes = 0,
                     font_size = 11,
                 }
+            },
+            player_resource = {
+                enabled = false, -- Personal resource display (health + power)
+                width = 220,
+                health_height = 16,
+                power_height = 14,
+                spacing = 3,
+                show_health_text = true,
+                show_power_text = true,
+                health_text_format = "both", -- numeric | percentage | formatted | both
+                power_text_format = "both",
+                text_size = 11,
+                break_up_large_numbers = true,
             },
             rage_indicator = {
                 enabled = true, -- Tint action button icons by range and usability

@@ -161,6 +161,97 @@ local function BuildModulesTab(scroll)
     })
 
     ModuleToggle(uiSection, {
+        label = LO["Player Resource Display"],
+        desc = LO["Show personal health and power bars above the castbar."],
+        moduleName = "player_resource",
+        requiresReload = false,
+        callback = function()
+            if addon.RefreshPlayerResourceSystem then addon.RefreshPlayerResourceSystem() end
+        end,
+    })
+
+    local prdRefresh = function()
+        if addon.RefreshPlayerResourceSystem then
+            addon.RefreshPlayerResourceSystem()
+        end
+    end
+
+    local prdTextFormats = {
+        numeric    = LO["Current Value"],
+        percentage = LO["Percentage"],
+        both       = LO["Numbers + %"],
+        formatted  = LO["Current / Max"],
+    }
+
+    C:AddSlider(uiSection, {
+        label = LO["PRD Width"],
+        dbPath = "modules.player_resource.width",
+        min = 100,
+        max = 400,
+        step = 1,
+        callback = prdRefresh,
+    })
+
+    C:AddSlider(uiSection, {
+        label = LO["PRD Health Height"],
+        dbPath = "modules.player_resource.health_height",
+        min = 8,
+        max = 40,
+        step = 1,
+        callback = prdRefresh,
+    })
+
+    C:AddSlider(uiSection, {
+        label = LO["PRD Power Height"],
+        dbPath = "modules.player_resource.power_height",
+        min = 8,
+        max = 40,
+        step = 1,
+        callback = prdRefresh,
+    })
+
+    C:AddToggle(uiSection, {
+        label = LO["Show Health Text"],
+        dbPath = "modules.player_resource.show_health_text",
+        callback = prdRefresh,
+    })
+
+    C:AddDropdown(uiSection, {
+        label = LO["Health Text Format"],
+        dbPath = "modules.player_resource.health_text_format",
+        values = prdTextFormats,
+        callback = prdRefresh,
+    })
+
+    C:AddToggle(uiSection, {
+        label = LO["Show Power Text"],
+        dbPath = "modules.player_resource.show_power_text",
+        callback = prdRefresh,
+    })
+
+    C:AddDropdown(uiSection, {
+        label = LO["Power Text Format"],
+        dbPath = "modules.player_resource.power_text_format",
+        values = prdTextFormats,
+        callback = prdRefresh,
+    })
+
+    C:AddSlider(uiSection, {
+        label = LO["PRD Text Size"],
+        dbPath = "modules.player_resource.text_size",
+        min = 8,
+        max = 20,
+        step = 1,
+        callback = prdRefresh,
+    })
+
+    C:AddToggle(uiSection, {
+        label = LO["Format Large Numbers"],
+        dbPath = "modules.player_resource.break_up_large_numbers",
+        callback = prdRefresh,
+    })
+
+    ModuleToggle(uiSection, {
         label = LO["Range Indicator"],
         desc = LO["Tints action button icons based on range and usability: red = out of range, blue = not enough mana, gray = unusable."],
         moduleName = "rage_indicator",
@@ -253,6 +344,7 @@ local function BuildModulesTab(scroll)
             { key = "micromenu",   name = LO["Micro Menu"] },
             { key = "cooldowns",   name = LO["Cooldowns"] },
             { key = "auracooldowns", name = LO["Target & Focus Aura Customization"] },
+            { key = "player_resource", name = LO["Player Resource Display"] },
             { key = "minimap",     name = LO["Minimap"] },
             { key = "nameplates",  name = LO["Nameplates"] },
             { key = "keybinding",  name = LO["KeyBinding"] },

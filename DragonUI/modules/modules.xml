@@ -36,8 +36,11 @@
     <Include file="unitframes\unitframes.xml"/>
     
     <!-- Cast Bar module -->
-    <Script file="castbar.lua"/>               
-    
+    <Script file="castbar.lua"/>
+
+    <!-- Personal Resource Display (opt-in health + power above castbar) -->
+    <Script file="player_resource.lua"/>
+
     <!-- Game Menu module -->
     <Script file="gamemenu.lua"/>
     
