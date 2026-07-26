@@ -820,13 +820,23 @@ local defaults = {
                 width = 220,
                 health_height = 16,
                 power_height = 14,
-                spacing = 3,
+                spacing = 0,
                 show_health_text = true,
                 show_power_text = true,
-                health_text_format = "both", -- numeric | percentage | formatted | both
+                health_text_format = "both",
                 power_text_format = "both",
                 text_size = 11,
                 break_up_large_numbers = true,
+                bar_texture = "blizzard", -- dragonui | blizzard | blizzard_flat | smooth | aluminium | litestep
+                -- Show When
+                show_on_hover = false,
+                show_in_combat = false,
+                hide_in_combat = false,
+                visibility_logic = "or",
+                show_when_health_below = false,
+                health_below_percent = 35,
+                show_when_power_below = false,
+                power_below_percent = 35,
             },
             rage_indicator = {
                 enabled = true, -- Tint action button icons by range and usability

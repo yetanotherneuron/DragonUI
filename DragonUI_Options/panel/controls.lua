@@ -823,7 +823,7 @@ function Controls:AddDropdown(parent, opts)
     end
     local dd = AceGUI:Create("Dropdown")
     dd:SetLabel(NormalizeText(opts.label, "Select"))
-    dd:SetList(NormalizeDropdownValues(opts.values))
+    dd:SetList(NormalizeDropdownValues(opts.values), opts.order)
     if opts.width then dd:SetWidth(opts.width) end
 
     local val
