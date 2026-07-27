@@ -1072,6 +1072,12 @@ ADDON_REGISTRY = {
         behavior = behaviors.SexyMapCompatibility,
         checkOnce = true
     },
+    ["Cheese"] = {
+        name = "Cheese",
+        reason = L["Cheese provides the same spell activation overlays and button glows as DragonUI Spell Alerts. Disable Cheese to avoid double effects."],
+        behavior = behaviors.ConflictWarning,
+        checkOnce = true
+    },
 }
 
 -- ============================================================================

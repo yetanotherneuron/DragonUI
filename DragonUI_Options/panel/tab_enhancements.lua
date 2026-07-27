@@ -2,7 +2,7 @@
 ================================================================================
 DragonUI Options Panel - Enhancements Tab
 ================================================================================
-Dark Mode, Range Indicator, Item Quality Borders, Enhanced Tooltips.
+Dark Mode, Range Indicator, Spell Alerts, Key Press, Item Quality, Tooltips, etc.
 ================================================================================
 ]]
 
@@ -157,6 +157,241 @@ local function BuildEnhancementsTab(scroll)
 
     AddRangeColor("oor_color", LO["Out of Range Color"], { r = 0.8, g = 0.2, b = 0.2 })
     AddRangeColor("oom_color", LO["Not Enough Mana Color"], { r = 0.5, g = 0.5, b = 1.0 })
+
+    C:AddSpacer(scroll)
+    local spellAlertsSection = C:AddSection(scroll, LO["Spell Alerts"])
+
+    C:AddDescription(spellAlertsSection, LO["Shows Cataclysm-style center-screen proc overlays and action button glows when important buffs activate."])
+
+    C:AddToggle(spellAlertsSection, {
+        label = LO["Enable Spell Alerts"],
+        desc = LO["Enable spell activation overlays and button glows."],
+        getFunc = function() return IsEnabled("spellalerts") end,
+        setFunc = function(val)
+            EnsureModuleTable("spellalerts").enabled = val
+        end,
+        callback = function()
+            if addon.RefreshSpellAlerts then addon.RefreshSpellAlerts() end
+        end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(spellAlertsSection, {
+        label = LO["Show Button Glow"],
+        desc = LO["Glow action buttons when a related proc buff is active."],
+        getFunc = function()
+            local v = GetModuleField("spellalerts", "show_glow")
+            return v ~= false
+        end,
+        setFunc = function(val)
+            EnsureModuleTable("spellalerts").show_glow = val
+        end,
+        callback = function()
+            if addon.RefreshSpellAlerts then addon.RefreshSpellAlerts() end
+        end,
+        disabled = function() return not IsEnabled("spellalerts") end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(spellAlertsSection, {
+        label = LO["Show Screen Overlay"],
+        desc = LO["Show center-screen textures for procs such as Art of War or Hot Streak."],
+        getFunc = function()
+            local v = GetModuleField("spellalerts", "show_overlay")
+            return v ~= false
+        end,
+        setFunc = function(val)
+            EnsureModuleTable("spellalerts").show_overlay = val
+        end,
+        callback = function()
+            if addon.RefreshSpellAlerts then addon.RefreshSpellAlerts() end
+        end,
+        disabled = function() return not IsEnabled("spellalerts") end,
+        requiresReload = false,
+    })
+
+    local function RefreshVisualOnly()
+        if addon.RefreshSpellAlertSettings then
+            addon.RefreshSpellAlertSettings()
+        elseif addon.ApplySpellAlertVisualSettings then
+            addon.ApplySpellAlertVisualSettings()
+        end
+    end
+
+    C:AddSlider(spellAlertsSection, {
+        label = LO["Glow Size"],
+        desc = LO["Size of the action button glow relative to the button."],
+        min = 1.0, max = 2.0, step = 0.05,
+        getFunc = function() return GetModuleField("spellalerts", "glow_scale") or 1.4 end,
+        setFunc = function(val) EnsureModuleTable("spellalerts").glow_scale = val end,
+        callback = RefreshVisualOnly,
+        disabled = function()
+            return not IsEnabled("spellalerts") or GetModuleField("spellalerts", "show_glow") == false
+        end,
+        width = 200,
+    })
+
+    C:AddSlider(spellAlertsSection, {
+        label = LO["Glow Opacity"],
+        desc = LO["Opacity of the action button glow."],
+        min = 0.1, max = 1.0, step = 0.05,
+        isPercent = true,
+        getFunc = function() return GetModuleField("spellalerts", "glow_alpha") or 1.0 end,
+        setFunc = function(val) EnsureModuleTable("spellalerts").glow_alpha = val end,
+        callback = RefreshVisualOnly,
+        disabled = function()
+            return not IsEnabled("spellalerts") or GetModuleField("spellalerts", "show_glow") == false
+        end,
+        width = 200,
+    })
+
+    C:AddSlider(spellAlertsSection, {
+        label = LO["Overlay Scale"],
+        desc = LO["Size of the center-screen spell alert textures."],
+        min = 0.5, max = 1.5, step = 0.05,
+        getFunc = function() return GetModuleField("spellalerts", "overlay_scale") or 1.0 end,
+        setFunc = function(val) EnsureModuleTable("spellalerts").overlay_scale = val end,
+        callback = RefreshVisualOnly,
+        disabled = function()
+            return not IsEnabled("spellalerts") or GetModuleField("spellalerts", "show_overlay") == false
+        end,
+        width = 200,
+    })
+
+    C:AddSlider(spellAlertsSection, {
+        label = LO["Overlay Opacity"],
+        desc = LO["Opacity of the center-screen spell alert textures."],
+        min = 0.1, max = 1.0, step = 0.05,
+        isPercent = true,
+        getFunc = function() return GetModuleField("spellalerts", "overlay_alpha") or 1.0 end,
+        setFunc = function(val) EnsureModuleTable("spellalerts").overlay_alpha = val end,
+        callback = RefreshVisualOnly,
+        disabled = function()
+            return not IsEnabled("spellalerts") or GetModuleField("spellalerts", "show_overlay") == false
+        end,
+        width = 200,
+    })
+
+    C:AddSlider(spellAlertsSection, {
+        label = LO["Overlay Spacing"],
+        desc = LO["Vertical/horizontal gap between split overlay pieces (left/right or top/bottom)."],
+        min = 0, max = 120, step = 2,
+        getFunc = function() return GetModuleField("spellalerts", "overlay_spacing") or 30 end,
+        setFunc = function(val) EnsureModuleTable("spellalerts").overlay_spacing = val end,
+        callback = RefreshVisualOnly,
+        disabled = function()
+            return not IsEnabled("spellalerts") or GetModuleField("spellalerts", "show_overlay") == false
+        end,
+        width = 200,
+    })
+
+    local previewValues, previewOrder
+    if addon.SpellAlertsPreview and addon.SpellAlertsPreview.values then
+        previewValues = addon.SpellAlertsPreview.values
+        previewOrder = addon.SpellAlertsPreview.order
+    elseif DragonUISpellAlert_GetPreviewDropdownValues then
+        previewValues = DragonUISpellAlert_GetPreviewDropdownValues()
+        previewOrder = DragonUISpellAlert_GetPreviewDropdownOrder and DragonUISpellAlert_GetPreviewDropdownOrder()
+    else
+        -- Fallback so the dropdown is never empty if the module API is unavailable.
+        previewValues = {
+            art_of_war = "Paladin: Art of War",
+            denounce = "Paladin: Denounce",
+            sword_and_board = "Warrior: Sword and Board",
+            sudden_death = "Warrior: Sudden Death",
+            blood_surge = "Warrior: Blood Surge",
+            hot_streak = "Mage: Hot Streak",
+            brain_freeze = "Mage: Brain Freeze",
+            impact = "Mage: Impact",
+            arcane_missiles = "Mage: Arcane Missiles",
+            frozen_fingers = "Mage: Frozen Fingers",
+            killing_machine = "Death Knight: Killing Machine",
+            rime = "Death Knight: Rime",
+            maelstrom_weapon = "Shaman: Maelstrom Weapon",
+            lock_and_load = "Hunter: Lock and Load",
+            master_marksman = "Hunter: Master Marksman",
+            eclipse_sun = "Druid: Eclipse (Solar)",
+            eclipse_moon = "Druid: Eclipse (Lunar)",
+            natures_grace = "Druid: Nature's Grace",
+            surge_of_light = "Priest: Surge of Light",
+            serendipity = "Priest: Serendipity",
+            nightfall = "Warlock: Nightfall",
+            molten_core = "Warlock: Molten Core",
+            backlash = "Warlock: Backlash",
+            imp_empowerment = "Warlock: Imp Empowerment",
+        }
+        previewOrder = {
+            "art_of_war", "denounce",
+            "sword_and_board", "sudden_death", "blood_surge",
+            "hot_streak", "brain_freeze", "impact", "arcane_missiles", "frozen_fingers",
+            "killing_machine", "rime",
+            "maelstrom_weapon",
+            "lock_and_load", "master_marksman",
+            "eclipse_sun", "eclipse_moon", "natures_grace",
+            "surge_of_light", "serendipity",
+            "nightfall", "molten_core", "backlash", "imp_empowerment",
+        }
+    end
+
+    C:AddDropdown(spellAlertsSection, {
+        label = LO["Preview Alert"],
+        desc = LO["Choose a class visual to preview on screen and on your main action bar."],
+        values = previewValues,
+        order = previewOrder,
+        getFunc = function()
+            local preview = addon.SpellAlertsPreview
+            return GetModuleField("spellalerts", "preview_alert")
+                or (preview and preview.GetDefaultKey and preview.GetDefaultKey())
+                or (DragonUISpellAlert_GetDefaultPreviewKey and DragonUISpellAlert_GetDefaultPreviewKey())
+                or "art_of_war"
+        end,
+        setFunc = function(val)
+            EnsureModuleTable("spellalerts").preview_alert = val
+        end,
+        disabled = function() return not IsEnabled("spellalerts") end,
+        width = 260,
+    })
+
+    C:AddButton(spellAlertsSection, {
+        label = LO["Preview Selected Alert"],
+        desc = LO["Show the selected visual for a few seconds. Also glows your main action bar so you can judge glow size and opacity."],
+        callback = function()
+            local key = GetModuleField("spellalerts", "preview_alert")
+                or (addon.SpellAlertsPreview and addon.SpellAlertsPreview.GetDefaultKey and addon.SpellAlertsPreview.GetDefaultKey())
+                or (DragonUISpellAlert_GetDefaultPreviewKey and DragonUISpellAlert_GetDefaultPreviewKey())
+                or "art_of_war"
+            local previewFn = (addon.SpellAlertsPreview and addon.SpellAlertsPreview.Preview)
+                or addon.PreviewSpellAlert
+                or DragonUISpellAlert_PreviewAlert
+                or _G.DragonUISpellAlert_PreviewAlert
+            if not previewFn then
+                print("|cffff9900DragonUI:|r Spell Alerts preview is unavailable. Try /reload.")
+                return
+            end
+            local ok, err = pcall(previewFn, key)
+            if not ok then
+                print("|cffff0000DragonUI Spell Alerts preview error:|r", tostring(err))
+            end
+        end,
+        disabled = function() return not IsEnabled("spellalerts") end,
+        width = 220,
+    })
+
+    C:AddButton(spellAlertsSection, {
+        label = LO["Stop Preview"],
+        desc = LO["Clear the preview overlay and button glow."],
+        callback = function()
+            local stopFn = (addon.SpellAlertsPreview and addon.SpellAlertsPreview.Stop)
+                or addon.StopSpellAlertPreview
+                or DragonUISpellAlert_StopPreview
+                or _G.DragonUISpellAlert_StopPreview
+            if stopFn then
+                stopFn()
+            end
+        end,
+        disabled = function() return not IsEnabled("spellalerts") end,
+        width = 220,
+    })
 
     -- ====================================================================
     -- KEY PRESS (fire abilities on key down)

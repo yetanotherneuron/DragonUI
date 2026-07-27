@@ -1,0 +1,17 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="animation.lua"/>
+	<Animation name="DragonUISpellAlertAlphaTemplate" virtual="true">
+		<Scripts>
+			<OnUpdate function="DragonUISpellAlertAlphaTemplate_OnUpdate"/>
+			<OnStop function="DragonUISpellAlertAlphaTemplate_OnStop"/>
+			<OnFinished function="DragonUISpellAlertAlphaTemplate_OnFinished"/>
+		</Scripts>
+	</Animation>
+	<Animation name="DragonUISpellAlertScaleTemplate" virtual="true">
+		<Scripts>
+			<OnUpdate function="DragonUISpellAlertScaleTemplate_OnUpdate"/>
+			<OnStop function="DragonUISpellAlertScaleTemplate_OnStop"/>
+			<OnFinished function="DragonUISpellAlertScaleTemplate_OnFinished"/>
+		</Scripts>
+	</Animation>
+</Ui>

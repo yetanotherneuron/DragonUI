@@ -823,7 +823,29 @@ function Controls:AddDropdown(parent, opts)
     end
     local dd = AceGUI:Create("Dropdown")
     dd:SetLabel(NormalizeText(opts.label, "Select"))
-    dd:SetList(NormalizeDropdownValues(opts.values), opts.order)
+
+    local values = opts.values
+    if type(values) == "function" then
+        values = values()
+    end
+    values = NormalizeDropdownValues(values)
+
+    -- This AceGUI build's SetList ignores a custom order arg and sorts keys.
+    -- When order is provided, populate items manually to preserve sequence.
+    if type(opts.order) == "table" and #opts.order > 0 then
+        dd.list = {}
+        if dd.pullout and dd.pullout.Clear then
+            dd.pullout:Clear()
+        end
+        for _, key in ipairs(opts.order) do
+            if values[key] ~= nil then
+                dd:AddItem(key, values[key])
+            end
+        end
+    else
+        dd:SetList(values)
+    end
+
     if opts.width then dd:SetWidth(opts.width) end
 
     local val

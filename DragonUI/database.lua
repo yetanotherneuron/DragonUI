@@ -1050,6 +1050,17 @@ local defaults = {
                 anchor_cursor = false, -- Anchor tooltip to cursor
                 show_aura_source = true, -- Show caster name (and spell ID) on buff/debuff tooltips
             },
+            spellalerts = {
+                enabled = true, -- Cataclysm-style spell activation overlays and button glows
+                show_glow = true, -- Action button glow (IconAlert / ants)
+                show_overlay = true, -- Center-screen proc textures
+                glow_scale = 1.4, -- Glow size relative to the action button
+                glow_alpha = 1.0, -- Button glow opacity
+                overlay_scale = 1.0, -- Multiplier on center overlay size
+                overlay_alpha = 1.0, -- Center overlay opacity
+                overlay_spacing = 30, -- Gap (px) between left/right or top/bottom overlay halves
+                preview_alert = nil, -- Last selected preview visual key in options
+            },
             itemquality = {
                 enabled = true, -- Color item borders by quality in bags, character panel, bank, merchant
                 min_quality = 2 -- Minimum quality to show (2 = Uncommon/green)

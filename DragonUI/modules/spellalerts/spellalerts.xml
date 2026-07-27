@@ -1,0 +1,11 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Spell Alerts: Cataclysm-style screen overlays + action button glows -->
+	<Script file="data.lua"/>
+	<Include file="animation.xml"/>
+	<Script file="util.lua"/>
+	<Script file="engine.lua"/>
+	<Include file="glow.xml"/>
+	<Include file="overlay.xml"/>
+	<Script file="test.lua"/>
+	<Script file="init.lua"/>
+</Ui>

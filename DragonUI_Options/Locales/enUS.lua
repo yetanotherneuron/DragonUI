@@ -383,6 +383,32 @@ L["Fires action bar abilities the instant you press a key instead of when you re
 L["Enable Key Press"] = true
 L["Fire abilities on key press instead of key release."] = true
 
+-- Spell Alerts
+L["Spell Alerts"] = true
+L["Shows Cataclysm-style center-screen proc overlays and action button glows when important buffs activate."] = true
+L["Enable Spell Alerts"] = true
+L["Enable spell activation overlays and button glows."] = true
+L["Show Button Glow"] = true
+L["Glow action buttons when a related proc buff is active."] = true
+L["Show Screen Overlay"] = true
+L["Show center-screen textures for procs such as Art of War or Hot Streak."] = true
+L["Glow Size"] = true
+L["Size of the action button glow relative to the button."] = true
+L["Glow Opacity"] = true
+L["Opacity of the action button glow."] = true
+L["Overlay Scale"] = true
+L["Size of the center-screen spell alert textures."] = true
+L["Overlay Opacity"] = true
+L["Opacity of the center-screen spell alert textures."] = true
+L["Overlay Spacing"] = true
+L["Vertical/horizontal gap between split overlay pieces (left/right or top/bottom)."] = true
+L["Preview Alert"] = true
+L["Choose a class visual to preview on screen and on your main action bar."] = true
+L["Preview Selected Alert"] = true
+L["Show the selected visual for a few seconds. Also glows your main action bar so you can judge glow size and opacity."] = true
+L["Stop Preview"] = true
+L["Clear the preview overlay and button glow."] = true
+
 -- Item Quality Borders
 L["Show colored glow borders on action buttons containing items, colored by item quality (green = uncommon, blue = rare, purple = epic, etc.)."] = true
 L["Enable Item Quality Borders"] = true

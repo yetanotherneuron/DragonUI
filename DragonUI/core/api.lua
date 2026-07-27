@@ -1578,6 +1578,11 @@ local MODULE_LIFECYCLE_OVERRIDES = {
         restore = "RestoreItemQualitySystem",
         loadOnce = true,
     },
+    spellalerts = {
+        apply = "ApplySpellAlerts",
+        refresh = "RefreshSpellAlerts",
+        loadOnce = true,
+    },
     mainbars = { refresh = "RefreshMainbarsSystem", loadOnce = true },
     micromenu = { refresh = "RefreshMicromenuSystem", loadOnce = true },
     minimap = { refresh = "RefreshMinimapSystem", loadOnce = true },

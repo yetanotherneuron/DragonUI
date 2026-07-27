@@ -57,6 +57,9 @@
     <Script file="..\data\npc_rare_ranks.lua"/>
     <Include file="nameplates\nameplates.xml"/>
     
+    <!-- Spell Alerts (proc overlays + action button glow) -->
+    <Include file="spellalerts\spellalerts.xml"/>
+
     <!-- Item Quality Borders module -->
     <Script file="itemquality.lua"/>
 

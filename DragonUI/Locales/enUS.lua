@@ -260,6 +260,7 @@ L["Conflicts with DragonUI's custom unit frame textures and power bar system."] 
 L["Known taint issues when manipulating party frames during combat. DragonUI provides automatic fixes."] = true
 L["Resets minimap mask and blip textures. DragonUI re-applies its custom textures automatically."] = true
 L["SexyMap modifies the minimap borders, shape, and zone text which conflicts with DragonUI's minimap module."] = true
+L["Cheese provides the same spell activation overlays and button glows as DragonUI Spell Alerts. Disable Cheese to avoid double effects."] = true
 L["Reads native nameplate alpha to identify the target's plate; conflicts with DragonUI's default anti-dim behavior."] = true
 L["Parents its cooldown icons to the native health bar; conflicts with DragonUI's default health-bar hiding."] = true
 
@@ -461,6 +462,8 @@ L["Aura Borders"] = true
 L["Modern borders on buff and debuff icons."] = true
 L["Dark Mode"] = true
 L["Darken UI borders and chrome"] = true
+L["Spell Alerts"] = true
+L["Cataclysm-style spell activation overlays and action button glows"] = true
 L["Item Quality"] = true
 L["Color item borders by quality in bags, character panel, bank, and merchant"] = true
 L["Item Level"] = true
