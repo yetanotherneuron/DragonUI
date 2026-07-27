@@ -784,6 +784,339 @@ local function BuildBossSection(scroll)
     })
 end
 
+-- ============================================================================
+-- BUFF TRACKER (above Personal Resource Display)
+-- ============================================================================
+
+local buffTrackerWatchTab = "classes_actives"
+local buffTrackerClass = "WARRIOR"
+
+local function BuildBuffTrackerSection(scroll)
+    local function EnsureModuleTable(moduleName)
+        return C:EnsureModuleTable(moduleName)
+    end
+
+    local function GetModuleField(moduleName, field)
+        local m = addon.db.profile.modules
+        return m and m[moduleName] and m[moduleName][field]
+    end
+
+    local function IsBuffTrackerEnabled()
+        return GetModuleField("bufftracker", "enabled") == true
+    end
+
+    local function RefreshBuffTracker()
+        if addon.RefreshBuffTracker then addon.RefreshBuffTracker() end
+    end
+
+    C:AddSpacer(scroll)
+    local buffTrackerSection = C:AddSection(scroll, LO["Buff Tracker"])
+
+    local BT_DB = "modules.bufftracker"
+
+    C:AddDescription(buffTrackerSection, LO["Shows selected player buff and debuff icons above the Personal Resource Display using action bar-style icon borders."])
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Enable Buff Tracker"],
+        desc = LO["Track configured player buffs above the Personal Resource Display."],
+        getFunc = function() return IsBuffTrackerEnabled() end,
+        setFunc = function(val)
+            EnsureModuleTable("bufftracker").enabled = val
+            RefreshBuffTracker()
+        end,
+    })
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Require Personal Resource Display"],
+        desc = LO["Hide the buff tracker when the Personal Resource Display is disabled."],
+        getFunc = function() return GetModuleField("bufftracker", "require_prd") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("bufftracker").require_prd = val
+            RefreshBuffTracker()
+        end,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+    })
+
+    C:AddHeading(buffTrackerSection, LO["Track Categories"])
+
+    local categoryToggles = {
+        { key = "classes_actives", label = LO["Track Class Actives"] or "Track Class Actives" },
+        { key = "classes_passives", label = LO["Track Class Passives"] or "Track Class Passives" },
+        { key = "buffs", label = LO["Track Buffs"] or "Track Buffs" },
+        { key = "procs", label = LO["Track Procs"] or "Track Procs" },
+        { key = "consume", label = LO["Track Consumables"] or "Track Consumables" },
+        { key = "stacks", label = LO["Track Target Stacks"] or "Track Target Stacks" },
+        { key = "enchants", label = LO["Track Enchants"] or "Track Enchants" },
+    }
+
+    for _, cat in ipairs(categoryToggles) do
+        C:AddToggle(buffTrackerSection, {
+            label = cat.label,
+            getFunc = function()
+                local cats = GetModuleField("bufftracker", "categories")
+                if cats and cats[cat.key] ~= nil then
+                    return cats[cat.key] == true
+                end
+                return cat.key == "classes_actives" or cat.key == "classes_passives"
+            end,
+            setFunc = function(val)
+                EnsureModuleTable("bufftracker")
+                local mod = addon.db.profile.modules.bufftracker
+                mod.categories = mod.categories or {}
+                mod.categories[cat.key] = val
+                RefreshBuffTracker()
+            end,
+            disabled = function() return not IsBuffTrackerEnabled() end,
+        })
+    end
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Track Target Debuffs"],
+        -- desc = LO["Show your target debuffs (Sunder Armor, diseases, etc.) above the Personal Resource Display. Disable to track them on nameplates only."],
+        getFunc = function() return GetModuleField("bufftracker", "track_target_debuffs") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("bufftracker").track_target_debuffs = val
+            RefreshBuffTracker()
+        end,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+    })
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Show Tooltip on Hover"],
+        desc = LO["Show the spell tooltip when hovering a tracked icon."],
+        getFunc = function() return GetModuleField("bufftracker", "show_tooltip") == true end,
+        setFunc = function(val)
+            EnsureModuleTable("bufftracker").show_tooltip = val
+            RefreshBuffTracker()
+        end,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+    })
+
+    C:AddSlider(buffTrackerSection, {
+        label = LO["Icon Size"],
+        desc = LO["Size of each tracked buff icon."],
+        min = 20, max = 48, step = 1,
+        getFunc = function() return GetModuleField("bufftracker", "icon_size") or 32 end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").icon_size = val end,
+        callback = RefreshBuffTracker,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+        width = 200,
+    })
+
+    C:AddSlider(buffTrackerSection, {
+        label = LO["Icon Spacing"],
+        desc = LO["Gap between tracked buff icons."],
+        min = 0, max = 16, step = 1,
+        getFunc = function() return GetModuleField("bufftracker", "icon_spacing") or 4 end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").icon_spacing = val end,
+        callback = RefreshBuffTracker,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+        width = 200,
+    })
+
+    C:AddSlider(buffTrackerSection, {
+        label = LO["Offset Above PRD"],
+        desc = LO["Vertical gap between the Personal Resource Display and the buff row."],
+        min = 0, max = 40, step = 1,
+        getFunc = function() return GetModuleField("bufftracker", "row_offset_y") or 6 end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").row_offset_y = val end,
+        callback = RefreshBuffTracker,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+        width = 200,
+    })
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Show Duration"],
+        desc = LO["Show remaining time on tracked buff icons."],
+        getFunc = function() return GetModuleField("bufftracker", "show_duration") ~= false end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").show_duration = val end,
+        callback = RefreshBuffTracker,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+    })
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Show Stacks"],
+        desc = LO["Show stack count when a tracked aura has more than one application."],
+        getFunc = function() return GetModuleField("bufftracker", "show_stacks") ~= false end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").show_stacks = val end,
+        callback = RefreshBuffTracker,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+    })
+
+    C:AddHeading(buffTrackerSection, LO["Consumables"])
+
+    C:AddDropdown(buffTrackerSection, {
+        label = LO["Consumable Show Mode"],
+        desc = LO["When to show flask, elixir, and feast icons."],
+        values = {
+            threshold = LO["Below threshold only"] or "Below threshold only",
+            always = LO["Always while active"] or "Always while active",
+            never = LO["Never"] or "Never",
+        },
+        getFunc = function() return GetModuleField("bufftracker", "consumable_show_mode") or "threshold" end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").consumable_show_mode = val end,
+        callback = RefreshBuffTracker,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+        width = 260,
+    })
+
+    C:AddSlider(buffTrackerSection, {
+        label = LO["Consumable Threshold (sec)"],
+        desc = LO["Show consumable icons when remaining time is at or below this value. Default 300 = 5 minutes."],
+        min = 30, max = 900, step = 30,
+        getFunc = function() return GetModuleField("bufftracker", "consumable_threshold_sec") or 300 end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").consumable_threshold_sec = val end,
+        callback = RefreshBuffTracker,
+        disabled = function()
+            return not IsBuffTrackerEnabled()
+                or (GetModuleField("bufftracker", "consumable_show_mode") or "threshold") ~= "threshold"
+        end,
+        width = 200,
+    })
+
+    C:AddToggle(buffTrackerSection, {
+        label = LO["Expired Consumable Glow"],
+        desc = LO["Pulse a small glow when a tracked consumable falls off."],
+        getFunc = function() return GetModuleField("bufftracker", "consumable_expired_glow") ~= false end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").consumable_expired_glow = val end,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+    })
+
+    C:AddSlider(buffTrackerSection, {
+        label = LO["Expired Glow Scale"],
+        min = 1.0, max = 2.0, step = 0.05,
+        getFunc = function() return GetModuleField("bufftracker", "consumable_glow_scale") or 1.2 end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").consumable_glow_scale = val end,
+        disabled = function()
+            return not IsBuffTrackerEnabled()
+                or GetModuleField("bufftracker", "consumable_expired_glow") == false
+        end,
+        width = 200,
+    })
+
+    --[[
+    C:AddHeading(buffTrackerSection, LO["Preview"])
+
+    C:AddButton(buffTrackerSection, {
+        label = LO["Preview Buffs"],
+        desc = LO["Show sample buff icons above PRD for a few seconds without needing active auras."],
+        callback = function()
+            local previewFn = (addon.BuffTrackerPreview and addon.BuffTrackerPreview.Preview)
+                or DragonUIBuffTracker_Preview
+            if previewFn then
+                pcall(previewFn)
+            end
+        end,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+        width = 220,
+    })
+
+    C:AddButton(buffTrackerSection, {
+        label = LO["Stop Buff Preview"],
+        desc = LO["Clear the buff tracker preview."],
+        callback = function()
+            local stopFn = (addon.BuffTrackerPreview and addon.BuffTrackerPreview.Stop)
+                or DragonUIBuffTracker_StopPreview
+            if stopFn then stopFn() end
+        end,
+        disabled = function() return not IsBuffTrackerEnabled() end,
+        width = 220,
+    })
+    ]]
+
+    --[[
+    C:AddSpacer(buffTrackerSection)
+    C:AddLabel(buffTrackerSection, LO["Watch Lists"], { color = C.Theme.textGold })
+    C:AddDescription(buffTrackerSection, LO["Add spell IDs to track. Icons appear in category order, then by activation order within each category."])
+
+    local watchSubTabs = {
+        { key = "classes_actives", label = LO["Class Actives"] or "Class Actives" },
+        { key = "classes_passives", label = LO["Class Passives"] or "Class Passives" },
+        { key = "buffs", label = LO["Track Buffs"] or "Buffs" },
+        { key = "procs", label = LO["Track Procs"] or "Procs" },
+        { key = "consume", label = LO["Track Consumables"] or "Consumables" },
+        { key = "stacks", label = LO["Track Target Stacks"] or "Stacks" },
+        { key = "enchants", label = LO["Track Enchants"] or "Enchants" },
+    }
+
+    local classValues = {
+        WARRIOR = LO["Warrior"] or "Warrior",
+        PALADIN = LO["Paladin"] or "Paladin",
+        HUNTER = LO["Hunter"] or "Hunter",
+        ROGUE = LO["Rogue"] or "Rogue",
+        PRIEST = LO["Priest"] or "Priest",
+        DEATHKNIGHT = LO["Death Knight"] or "Death Knight",
+        SHAMAN = LO["Shaman"] or "Shaman",
+        MAGE = LO["Mage"] or "Mage",
+        WARLOCK = LO["Warlock"] or "Warlock",
+        DRUID = LO["Druid"] or "Druid",
+    }
+
+    local function BuildWatchListTab(scrollChild)
+        local listKey = buffTrackerWatchTab
+        local dbListPath
+        local dbBorderPath
+
+        if listKey == "classes_actives" or listKey == "classes_passives" then
+            local branch = listKey == "classes_actives" and "actives" or "passives"
+            dbListPath = BT_DB .. ".lists.classes." .. branch .. "." .. buffTrackerClass .. ".spell_ids"
+            dbBorderPath = BT_DB .. ".lists.classes." .. branch .. "." .. buffTrackerClass .. ".border_mode"
+            C:AddDropdown(scrollChild, {
+                label = LO["Class"],
+                values = classValues,
+                getFunc = function() return buffTrackerClass end,
+                setFunc = function(val)
+                    buffTrackerClass = val
+                    Panel:SelectTab("unitframes")
+                end,
+                disabled = function() return not IsBuffTrackerEnabled() end,
+                width = 200,
+            })
+        else
+            dbListPath = BT_DB .. ".lists." .. listKey .. ".spell_ids"
+            dbBorderPath = BT_DB .. ".lists." .. listKey .. ".border_mode"
+        end
+
+        C:AddDropdown(scrollChild, {
+            label = LO["Category Border Color"],
+            desc = LO["Default border color for spells in this watch list."],
+            values = borderModeValues,
+            getFunc = function() return C:GetDBValue(dbBorderPath) or "red" end,
+            setFunc = function(val) C:SetDBValue(dbBorderPath, val) end,
+            callback = RefreshBuffTracker,
+            disabled = function() return not IsBuffTrackerEnabled() end,
+            width = 260,
+        })
+
+        C:AddSpellFilterList(scrollChild, {
+            dbPath = dbListPath,
+            disabled = function() return not IsBuffTrackerEnabled() end,
+            callback = RefreshBuffTracker,
+            rebuildUI = function()
+                Panel:SelectTab("unitframes")
+            end,
+        })
+    end
+
+    local watchBuilders = {}
+    for _, tab in ipairs(watchSubTabs) do
+        watchBuilders[tab.key] = BuildWatchListTab
+    end
+
+    C:AddSubTabs(buffTrackerSection, watchSubTabs, buffTrackerWatchTab, function(key)
+        buffTrackerWatchTab = key
+        Panel:SelectTab("unitframes")
+    end, watchBuilders)
+
+    if not Panel.indexing then
+        local watchBuilder = watchBuilders[buffTrackerWatchTab]
+        if watchBuilder then
+            watchBuilder(buffTrackerSection)
+        end
+    end
+    ]]
+end
+
 local function BuildPersonalResourceSection(scroll)
     local refresh = function()
         if addon.RefreshPlayerResourceSystem then
@@ -794,9 +1127,7 @@ local function BuildPersonalResourceSection(scroll)
     local enabled = addon.IsModuleEnabled and addon:IsModuleEnabled("player_resource")
     if not enabled then
         C:AddDescription(scroll, LO["Enable Player Resource Display under Modules to configure these options."])
-        return
-    end
-
+    else
     local textFormats = {
         numeric    = LO["Current Value"],
         percentage = LO["Percentage"],
@@ -935,6 +1266,9 @@ local function BuildPersonalResourceSection(scroll)
         min = 1, max = 100, step = 1,
         callback = refresh,
     })
+    end
+
+    BuildBuffTrackerSection(scroll)
 end
 
 -- ============================================================================

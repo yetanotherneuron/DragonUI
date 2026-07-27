@@ -1583,6 +1583,12 @@ local MODULE_LIFECYCLE_OVERRIDES = {
         refresh = "RefreshSpellAlerts",
         loadOnce = true,
     },
+    bufftracker = {
+        apply = "ApplyBuffTracker",
+        refresh = "RefreshBuffTracker",
+        restore = "RestoreBuffTracker",
+        loadOnce = true,
+    },
     mainbars = { refresh = "RefreshMainbarsSystem", loadOnce = true },
     micromenu = { refresh = "RefreshMicromenuSystem", loadOnce = true },
     minimap = { refresh = "RefreshMinimapSystem", loadOnce = true },

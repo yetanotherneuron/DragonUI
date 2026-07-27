@@ -44,18 +44,19 @@ end
 local DEFAULT_WIDTH = 220
 local DEFAULT_HEALTH_HEIGHT = 16
 local DEFAULT_POWER_HEIGHT = 14
+local DEFAULT_SPACING = 3
 local DEFAULT_TEXT_SIZE = 11
 local DEFAULT_TEXT_FORMAT = "both"
 local DEFAULT_WIDGET_ANCHOR = "CENTER"
 local DEFAULT_WIDGET_X = 0
 local DEFAULT_WIDGET_Y = -220
 
-local BORDER_SIZE = 2          -- outer black border
-local DIVIDER_SIZE = 1         -- 1px between health and power
+local CASTBAR_ATLAS = "Interface\\AddOns\\DragonUI\\Textures\\CastbarOriginal\\uicastingbar2x"
+local UV_BORDER = { 0.412109375, 0.828125, 0.001953125, 0.060546875 }
+local UV_BACKGROUND = { 0.0009765625, 0.4130859375, 0.3671875, 0.41796875 }
 
 local POWER_FALLBACK = "Interface\\AddOns\\DragonUI\\Textures\\Unitframe\\UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana"
 local HEALTH_FALLBACK = "Interface\\AddOns\\DragonUI\\Textures\\Unitframe\\UI-HUD-UnitFrame-Player-PortraitOn-Bar-Health"
-local SOLID_TEX = "Interface\\Buttons\\WHITE8X8"
 
 -- Status bar texture styles (grayscale ones need SetStatusBarColor)
 local BAR_TEXTURE_PATHS = {
@@ -113,8 +114,11 @@ local function MigrateLegacyDefaults()
         cfg.width = DEFAULT_WIDTH
         cfg.health_height = DEFAULT_HEALTH_HEIGHT
         cfg.power_height = DEFAULT_POWER_HEIGHT
+        cfg.spacing = DEFAULT_SPACING
     end
-    cfg.spacing = 0
+    if cfg.spacing == nil then
+        cfg.spacing = DEFAULT_SPACING
+    end
     if cfg.show_health_text == nil then cfg.show_health_text = true end
     if cfg.show_power_text == nil then cfg.show_power_text = true end
     if cfg.health_text_format == nil then cfg.health_text_format = DEFAULT_TEXT_FORMAT end
@@ -155,7 +159,27 @@ local function GetSizeConfig()
     local cfg = GetModuleConfig() or {}
     return tonumber(cfg.width) or DEFAULT_WIDTH,
         tonumber(cfg.health_height) or DEFAULT_HEALTH_HEIGHT,
-        tonumber(cfg.power_height) or DEFAULT_POWER_HEIGHT
+        tonumber(cfg.power_height) or DEFAULT_POWER_HEIGHT,
+        tonumber(cfg.spacing) or DEFAULT_SPACING
+end
+
+local function StyleBarChrome(bar)
+    if not bar then return end
+    if not bar.bg then
+        local bg = bar:CreateTexture(nil, "BACKGROUND")
+        bg:SetTexture(CASTBAR_ATLAS)
+        bg:SetTexCoord(unpack(UV_BACKGROUND))
+        bg:SetAllPoints(bar)
+        bar.bg = bg
+    end
+    if not bar.border then
+        local border = bar:CreateTexture(nil, "ARTWORK", nil, 0)
+        border:SetTexture(CASTBAR_ATLAS)
+        border:SetTexCoord(unpack(UV_BORDER))
+        border:SetPoint("TOPLEFT", bar, "TOPLEFT", -2, 2)
+        border:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 2, -2)
+        bar.border = border
+    end
 end
 
 local function GetTextConfig()
@@ -452,23 +476,13 @@ end
 -- FRAMES
 -- ============================================================================
 
-local function StyleContainerBox(container)
-    container:SetBackdrop({
-        bgFile = SOLID_TEX,
-        edgeFile = SOLID_TEX,
-        edgeSize = BORDER_SIZE,
-        insets = { left = BORDER_SIZE, right = BORDER_SIZE, top = BORDER_SIZE, bottom = BORDER_SIZE },
-    })
-    container:SetBackdropColor(0, 0, 0, 0.85)
-    container:SetBackdropBorderColor(0, 0, 0, 1)
-end
-
 local function CreateBars(container)
     local health = CreateFrame("StatusBar", "DragonUI_PlayerResourceHealth", container)
     health:EnableMouse(false)
     ApplyHealthBarStyle(health)
     health:SetMinMaxValues(0, 1)
     health:SetValue(1)
+    StyleBarChrome(health)
     EnsureBarTexts(health)
 
     local power = CreateFrame("StatusBar", "DragonUI_PlayerResourcePower", container)
@@ -476,13 +490,8 @@ local function CreateBars(container)
     ApplyPowerBarStyle(power, "MANA")
     power:SetMinMaxValues(0, 1)
     power:SetValue(1)
+    StyleBarChrome(power)
     EnsureBarTexts(power)
-
-    local divider = container:CreateTexture(nil, "ARTWORK")
-    divider:SetTexture(SOLID_TEX)
-    divider:SetVertexColor(0, 0, 0, 1)
-    divider:SetHeight(DIVIDER_SIZE)
-    container.divider = divider
 
     return health, power
 end
@@ -500,32 +509,31 @@ local function LayoutBars()
         return
     end
 
-    local width, healthHeight, powerHeight = GetSizeConfig()
-    -- Box = outer border + health + 1px divider + power + outer border
-    local boxHeight = BORDER_SIZE + healthHeight + DIVIDER_SIZE + powerHeight + BORDER_SIZE
+    local width, healthHeight, powerHeight, spacing = GetSizeConfig()
+    local totalHeight = healthHeight + spacing + powerHeight
 
-    frames.container:SetSize(width, boxHeight)
-    if frames.anchor then
-        frames.anchor:SetSize(width, boxHeight)
+    if frames.container.SetBackdrop then
+        frames.container:SetBackdrop(nil)
+    end
+    if frames.container.divider then
+        frames.container.divider:Hide()
     end
 
-    local innerW = width - (BORDER_SIZE * 2)
+    StyleBarChrome(frames.health)
+    StyleBarChrome(frames.power)
+
+    frames.container:SetSize(width, totalHeight)
+    if frames.anchor then
+        frames.anchor:SetSize(width, totalHeight)
+    end
 
     frames.health:ClearAllPoints()
-    frames.health:SetSize(innerW, healthHeight)
-    frames.health:SetPoint("TOPLEFT", frames.container, "TOPLEFT", BORDER_SIZE, -BORDER_SIZE)
-
-    if frames.container.divider then
-        frames.container.divider:ClearAllPoints()
-        frames.container.divider:SetHeight(DIVIDER_SIZE)
-        frames.container.divider:SetPoint("TOPLEFT", frames.health, "BOTTOMLEFT", 0, 0)
-        frames.container.divider:SetPoint("TOPRIGHT", frames.health, "BOTTOMRIGHT", 0, 0)
-        frames.container.divider:Show()
-    end
+    frames.health:SetSize(width, healthHeight)
+    frames.health:SetPoint("TOP", frames.container, "TOP", 0, 0)
 
     frames.power:ClearAllPoints()
-    frames.power:SetSize(innerW, powerHeight)
-    frames.power:SetPoint("TOPLEFT", frames.health, "BOTTOMLEFT", 0, -DIVIDER_SIZE)
+    frames.power:SetSize(width, powerHeight)
+    frames.power:SetPoint("TOP", frames.health, "BOTTOM", 0, -spacing)
 
     HideLegacyClassHost()
     RaiseBarTextFrame(frames.health)
@@ -723,17 +731,16 @@ local function EnsureFrames()
         return frames
     end
 
-    local width, healthHeight, powerHeight = GetSizeConfig()
-    local boxHeight = BORDER_SIZE + healthHeight + DIVIDER_SIZE + powerHeight + BORDER_SIZE
+    local width, healthHeight, powerHeight, spacing = GetSizeConfig()
+    local totalHeight = healthHeight + spacing + powerHeight
 
-    local anchor = addon.CreateUIFrame(width, boxHeight, "PlayerResource")
+    local anchor = addon.CreateUIFrame(width, totalHeight, "PlayerResource")
     frames.anchor = anchor
 
     local container = CreateFrame("Frame", "DragonUI_PlayerResource", UIParent)
     container:EnableMouse(true) -- needed for show-on-hover
     container:SetFrameStrata("MEDIUM")
     container:SetFrameLevel(10)
-    StyleContainerBox(container)
     container:SetScript("OnEnter", function()
         PlayerResourceModule.mouseOver = true
         RefreshVisibility()
@@ -979,6 +986,7 @@ function addon.TestPlayerResourceHealPrediction(seconds)
         SetVisible(true)
         local host = GetLayersHost()
         if host and addon.UFL_AttachHealPrediction then
+            ApplyHealthBarStyle(PlayerResourceModule.frames.health)
             addon.UFL_AttachHealPrediction(host)
         end
         -- Keep PRD health locked to the fake preview value while the test runs.
@@ -995,6 +1003,42 @@ function addon.TestPlayerResourceHealPrediction(seconds)
 
     return true
 end
+
+--[[
+function addon.ShowPlayerResourceBuffTrackerPreview()
+    if not IsModuleEnabled() then
+        return false
+    end
+    EnsureFrames()
+    UpdateWidgets()
+    RefreshVisibility()
+    UpdateAll()
+
+    local frames = PlayerResourceModule.frames
+    if frames and frames.container and frames.container:IsShown() then
+        PlayerResourceModule.buffTrackerPreviewForced = true
+        return true
+    end
+    return false
+end
+
+function addon.HidePlayerResourceBuffTrackerPreview()
+    if not PlayerResourceModule.buffTrackerPreviewForced then
+        return
+    end
+    PlayerResourceModule.buffTrackerPreviewForced = false
+
+    if IsModuleEnabled() then
+        RefreshVisibility()
+        return
+    end
+
+    local frames = PlayerResourceModule.frames
+    if frames and frames.container then
+        frames.container:Hide()
+    end
+end
+]]
 
 local function Initialize()
     if PlayerResourceModule.initialized then return end

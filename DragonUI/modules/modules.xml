@@ -60,6 +60,9 @@
     <!-- Spell Alerts (proc overlays + action button glow) -->
     <Include file="spellalerts\spellalerts.xml"/>
 
+    <!-- Buff Tracker (curated player buffs above PRD) -->
+    <Include file="bufftracker\bufftracker.xml"/>
+
     <!-- Item Quality Borders module -->
     <Script file="itemquality.lua"/>
 

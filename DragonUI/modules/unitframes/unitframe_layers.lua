@@ -594,7 +594,35 @@ local function UnitFrameLayer_Initialize(self, myHealPredictionBar, otherHealPre
 	UnitFrameHealPredictionBars_Update(self);
 end
 
--- Match host health-bar texture (PRD blizzard/smooth/etc.) with stronger tints.
+-- Prediction overlays use the standard fill texture on unit frames so vertex
+-- tints stay correct with smooth/aluminium/litestep. PRD copies its health bar texture.
+local HEAL_PREDICTION_TEXTURE = "Interface\\TargetingFrame\\UI-StatusBar"
+
+local function IsPlayerResourceLayersHost(frame)
+	if not frame then return false end
+	if frame.GetName and frame:GetName() == "DragonUI_PlayerResource" then
+		return true
+	end
+	local healthbar = frame.healthbar
+	return healthbar and healthbar.GetName and healthbar:GetName() == "DragonUI_PlayerResourceHealth"
+end
+
+local function GetHealPredictionBarTexture(frame)
+	if IsPlayerResourceLayersHost(frame) then
+		local visual = UFL_VisualHealthBar(frame)
+		if visual then
+			local statusTex = visual:GetStatusBarTexture()
+			if statusTex then
+				local path = statusTex:GetTexture()
+				if path and path ~= "" then
+					return path
+				end
+			end
+		end
+	end
+	return HEAL_PREDICTION_TEXTURE
+end
+
 local function StyleLiteHealOverlays(frame)
 	if not frame then return end
 
@@ -605,16 +633,7 @@ local function StyleLiteHealOverlays(frame)
 	local absorbOverlay = frame.totalAbsorbBarOverlay
 	local overAbsorb = frame.overAbsorbGlow
 
-	local barTex = "Interface\\TargetingFrame\\UI-StatusBar"
-	if healthBar and healthBar.GetStatusBarTexture then
-		local sbTex = healthBar:GetStatusBarTexture()
-		if sbTex and sbTex.GetTexture then
-			local path = sbTex:GetTexture()
-			if path and path ~= "" then
-				barTex = path
-			end
-		end
-	end
+	local barTex = GetHealPredictionBarTexture(frame)
 
 	if my then
 		local templateFrame = my:GetParent()
@@ -1038,6 +1057,7 @@ addon.UFL_AttachHealPrediction = AttachHealPredictionLite
 addon.UFL_DetachHealPrediction = DetachHealPredictionLite
 addon.UFL_UpdateHealPrediction = function(frame)
 	if frame and frame.myHealPredictionBar then
+		StyleLiteHealOverlays(frame)
 		UnitFrameHealPredictionBars_Update(frame)
 	end
 end

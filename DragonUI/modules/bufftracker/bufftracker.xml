@@ -1,0 +1,9 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="data.lua"/>
+	<Script file="watchlists.lua"/>
+	<Script file="icons.lua"/>
+	<Script file="glow.lua"/>
+	<Script file="layout.lua"/>
+	<Script file="engine.lua"/>
+	<Script file="init.lua"/>
+</Ui>

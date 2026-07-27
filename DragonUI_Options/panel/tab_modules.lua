@@ -171,6 +171,16 @@ local function BuildModulesTab(scroll)
     })
 
     ModuleToggle(uiSection, {
+        label = LO["Buff Tracker"],
+        desc = LO["Track configured player buffs above the Personal Resource Display."],
+        moduleName = "bufftracker",
+        requiresReload = false,
+        callback = function()
+            if addon.RefreshBuffTracker then addon.RefreshBuffTracker() end
+        end,
+    })
+
+    ModuleToggle(uiSection, {
         label = LO["Range Indicator"],
         desc = LO["Tints action button icons based on range and usability: red = out of range, blue = not enough mana, gray = unusable."],
         moduleName = "rage_indicator",
