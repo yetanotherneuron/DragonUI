@@ -216,6 +216,7 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 	watchMap = watchMap or BT.BuildWatchMap(cfg)
 	local state = BT.engineState
 	local display = {}
+	local displayByKey = {}
 	local tick = GetTime()
 	local resolvedActive = {}
 
@@ -260,26 +261,59 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 			if visible then
 				local showDuration, showStacks = ResolveShowFlags(cfg, watch, aura)
 				local glowEnabled, glowColor = ResolveGlowOptions(cfg, watch)
-				display[#display + 1] = {
-					key = displayKey,
-					spellID = spellID,
-					tooltipID = watch.tooltipID or spellID,
-					category = watch.category,
-					texture = aura.texture,
-					expiration = aura.expiration,
-					duration = aura.duration and aura.duration > 0 and aura.duration or nil,
-					count = aura.count,
-					showDuration = showDuration,
-					showStacks = showStacks,
-					forceStacks = watch.showStacks == true,
-					icdOnly = aura.icdOnly == true,
-					glowEnabled = glowEnabled,
-					glowColor = glowColor,
-					glowScale = cfg.icon_glow_scale or 1.2,
-					glowAlpha = cfg.icon_glow_alpha or 1.0,
-					firstSeen = state.firstSeen[displayKey],
-					categoryRank = CategoryRank(watch.category),
-				}
+				local auraDuration = aura.duration and aura.duration > 0 and aura.duration or nil
+				local existing = displayByKey[displayKey]
+				if existing then
+					-- Merge companion auras (e.g. DFO Surging Power stacks + Surge of Power timer).
+					if (aura.count or 0) > (existing.count or 0) then
+						existing.count = aura.count
+					end
+					if auraDuration and (not existing.duration or existing.duration <= 0) then
+						existing.duration = auraDuration
+						existing.expiration = aura.expiration
+					elseif aura.expiration and aura.expiration > 0 and (not existing.expiration or existing.expiration <= 0) then
+						existing.expiration = aura.expiration
+						existing.duration = auraDuration
+					end
+					if showDuration then
+						existing.showDuration = true
+					end
+					if showStacks or watch.showStacks == true then
+						existing.showStacks = true
+						existing.forceStacks = existing.forceStacks or watch.showStacks == true
+					end
+					if aura.texture and (aura.count or 0) > 1 then
+						existing.texture = aura.texture
+					end
+					if not existing.icdOnly then
+						existing.icdOnly = aura.icdOnly == true
+					elseif aura.icdOnly ~= true then
+						existing.icdOnly = false
+					end
+				else
+					local entry = {
+						key = displayKey,
+						spellID = spellID,
+						tooltipID = watch.tooltipID or spellID,
+						category = watch.category,
+						texture = aura.texture,
+						expiration = aura.expiration,
+						duration = auraDuration,
+						count = aura.count,
+						showDuration = showDuration,
+						showStacks = showStacks,
+						forceStacks = watch.showStacks == true,
+						icdOnly = aura.icdOnly == true,
+						glowEnabled = glowEnabled,
+						glowColor = glowColor,
+						glowScale = cfg.icon_glow_scale or 1.2,
+						glowAlpha = cfg.icon_glow_alpha or 1.0,
+						firstSeen = state.firstSeen[displayKey],
+						categoryRank = CategoryRank(watch.category),
+					}
+					displayByKey[displayKey] = entry
+					display[#display + 1] = entry
+				end
 			end
 		end
 	end

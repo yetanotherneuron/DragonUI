@@ -127,16 +127,34 @@ function BT.ItemHasActiveProcAura(itemID, activeAuras, watchMap)
 	if not spells or not activeAuras then
 		return false
 	end
+
+	local driverPrimary
+	if watchMap and BT.FindWatchForAura and spells[1] then
+		local _, driverWatch = BT.FindWatchForAura(watchMap, nil, spells[1])
+		driverPrimary = driverWatch and driverWatch.primarySpellID
+	end
+
 	for i = 1, #spells do
 		local spellID = spells[i]
 		if activeAuras[spellID] then
 			return true
 		end
-		if BT.FindWatchForAura then
-			for activeID, aura in pairs(activeAuras) do
-				local resolvedID = BT.FindWatchForAura(watchMap, aura.name, activeID)
-				if resolvedID == spellID then
-					return true
+	end
+
+	-- Match watchlist siblings (e.g. Surging Power stacks with Surge of Power driver).
+	if watchMap and BT.FindWatchForAura then
+		for activeID, aura in pairs(activeAuras) do
+			if not aura.icdOnly then
+				local resolvedID, watch = BT.FindWatchForAura(watchMap, aura.name, activeID)
+				if resolvedID then
+					for i = 1, #spells do
+						if resolvedID == spells[i] then
+							return true
+						end
+					end
+					if driverPrimary and watch and watch.primarySpellID == driverPrimary then
+						return true
+					end
 				end
 			end
 		end

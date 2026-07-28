@@ -15,6 +15,8 @@ BT.ICD_PROC_BUFF_DURATION = 30
 BT.ICD_ITEM_PRIMARY_SPELL = {
 	[50362] = 71485, -- Deathbringer's Will (Normal)
 	[50363] = 71556, -- Deathbringer's Will (Heroic)
+	[50353] = 71600, -- Dislodged Foreign Object (Surging Power)
+	[50348] = 71643, -- Dislodged Foreign Object Heroic (Surging Power)
 }
 
 BT.ICD_SPELL_TO_ITEM = {
@@ -167,6 +169,10 @@ BT.ICD_COOLDOWNS = {
 	[72414] = 60,
 	[72416] = 60,
 	[72418] = 60,
+
+	-- Dislodged Foreign Object (Surge of Power driver; stacks are 71600/71643)
+	[71601] = 45,
+	[71644] = 45,
 
 	-- Phylactery
 	[71605] = 90,

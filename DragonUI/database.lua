@@ -77,9 +77,10 @@ local defaults = {
                 posY = 200
             },
             player_resource = {
-                anchor = "CENTER",
+                -- BOTTOM like playerCastbar so spacing stays stable across UI scales
+                anchor = "BOTTOM",
                 posX = 0,
-                posY = -220
+                posY = 240
             },
             targetCastbar = {
                 anchor = "CENTER",

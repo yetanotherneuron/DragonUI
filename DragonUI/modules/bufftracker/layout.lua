@@ -46,9 +46,9 @@ end
 function BT.GetPreviewWidgetAnchor()
 	local widgets = addon.db and addon.db.profile and addon.db.profile.widgets
 	local widget = widgets and widgets.player_resource
-	local point = (widget and widget.anchor) or "CENTER"
+	local point = (widget and widget.anchor) or "BOTTOM"
 	local x = (widget and widget.posX) or 0
-	local y = (widget and widget.posY) or -220
+	local y = (widget and widget.posY) or 240
 	return point, x, y
 end
 
@@ -118,9 +118,11 @@ function BT.AnchorContainer()
 	local anchor = BT.GetAnchorFrame()
 	if anchor == UIParent then
 		local point, x, y = BT.GetPreviewWidgetAnchor()
-		container:SetPoint("BOTTOMLEFT", UIParent, point, x, y + offsetY)
+		-- Match PRD widget point so preview fallback stays scale-stable with castbar/actionbars.
+		container:SetPoint("BOTTOM", UIParent, point, x, y + offsetY)
 	else
-		container:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, offsetY)
+		-- Center the buff row on the PRD; offsets are in the PRD's space so UI scale stays consistent.
+		container:SetPoint("BOTTOM", anchor, "TOP", 0, offsetY)
 	end
 end
 

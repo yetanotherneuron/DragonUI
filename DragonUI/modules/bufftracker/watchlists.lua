@@ -225,7 +225,8 @@ BT.WATCH_LISTS = {
 			71484, 71485, 71486, 71487, 71490, 71491, 71492, -- Normal
 			71556, 71557, 71558, 71559, 71560, 71561, -- Heroic
 		} }, -- Deathbringer's Will (30s proc, 105s ICD)
-		{ id = 71601, border = "procs", duration = true, ranks = { 71601, 71644 } }, -- Dislodged Foreign Object
+		-- Surging Power stacks (71600/71643) + Surge of Power driver (71601/71644)
+		{ id = 71600, border = "procs", duration = true, stacks = true, ranks = { 71600, 71643, 71601, 71644 } }, -- Dislodged Foreign Object
 		{ id = 60229, border = "procs", duration = true, ranks = { 60229, 60233, 60234, 60235 } }, -- Greatness
 		{ id = 54758, border = "procs", duration = true }, -- Hyperspeed Accelerators
 		{ id = 53762, border = "procs", duration = true }, -- Indestructible Potion

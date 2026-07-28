@@ -47,9 +47,10 @@ local DEFAULT_POWER_HEIGHT = 14
 local DEFAULT_SPACING = 3
 local DEFAULT_TEXT_SIZE = 11
 local DEFAULT_TEXT_FORMAT = "both"
-local DEFAULT_WIDGET_ANCHOR = "CENTER"
+-- BOTTOM (same space as playerCastbar) keeps PRD/buffs aligned across UI scales.
+local DEFAULT_WIDGET_ANCHOR = "BOTTOM"
 local DEFAULT_WIDGET_X = 0
-local DEFAULT_WIDGET_Y = -220
+local DEFAULT_WIDGET_Y = 240
 
 local CASTBAR_ATLAS = "Interface\\AddOns\\DragonUI\\Textures\\CastbarOriginal\\uicastingbar2x"
 local UV_BORDER = { 0.412109375, 0.828125, 0.001953125, 0.060546875 }
@@ -145,10 +146,17 @@ local function MigrateLegacyDefaults()
             widget.posX = DEFAULT_WIDGET_X
             widget.posY = DEFAULT_WIDGET_Y
         elseif (widget.anchor == "CENTER" or not widget.anchor) then
+            -- CENTER offsets drift vs BOTTOM-anchored castbar/bars when UI scale changes.
+            -- Convert once to BOTTOM, preserving the current on-screen position.
             local y = tonumber(widget.posY)
-            if y and y <= -290 and y >= -320 then
-                widget.anchor = DEFAULT_WIDGET_ANCHOR
-                widget.posX = tonumber(widget.posX) or DEFAULT_WIDGET_X
+            local x = tonumber(widget.posX) or DEFAULT_WIDGET_X
+            widget.anchor = DEFAULT_WIDGET_ANCHOR
+            widget.posX = x
+            local uiHeight = UIParent and UIParent.GetHeight and UIParent:GetHeight() or 0
+            if uiHeight > 0 and y then
+                local frameH = DEFAULT_HEALTH_HEIGHT + DEFAULT_SPACING + DEFAULT_POWER_HEIGHT
+                widget.posY = (uiHeight * 0.5) + y - (frameH * 0.5)
+            else
                 widget.posY = DEFAULT_WIDGET_Y
             end
         end
