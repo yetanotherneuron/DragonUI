@@ -204,16 +204,16 @@ BT.WATCH_LISTS = {
 		{ id = 32182, border = "utility", duration = true }, -- Heroism
 		{ id = 70867, border = "utility", duration = true }, -- Essence of the Blood Queen (ICC)
 		{ id = 57330, border = "utility", lowTime = true }, -- Horn of Winter
-		{ id = 53292, border = "utility" }, -- Hunting Party
-		{ id = 55610, border = "utility" }, -- Improved Icy Talons
-		{ id = 24907, border = "utility" }, -- Leader of the Pack
+		-- { id = 53292, border = "utility" }, -- Hunting Party
+		-- { id = 55610, border = "utility" }, -- Improved Icy Talons
+		-- { id = 24907, border = "utility" }, -- Leader of the Pack
 		{ id = 48469, border = "utility", lowTime = true }, -- Mark of the Wild
 		-- { id = 48336, border = "utility" }, -- Moonkin Aura
 		{ id = 48161, border = "utility", lowTime = true }, -- Power Word: Fortitude
 		{ id = 10060, border = "utility", duration = true }, -- Power Infusion
 		{ id = 48074, border = "utility", lowTime = true }, -- Prayer of Spirit
 		{ id = 48169, border = "utility", lowTime = true }, -- Shadow Protection
-		{ id = 58643, border = "utility" }, -- Strength of Earth
+		-- { id = 58643, border = "utility" }, -- Strength of Earth
 		{ id = 57934, border = "utility", duration = true }, -- Tricks of the Trade (damage buff)
 		-- { id = 19506, border = "utility" }, -- Trueshot Aura (passive raid buff)
 	},
