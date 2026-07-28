@@ -16,22 +16,29 @@ BT.WATCH_LISTS = {
 				{ id = 12976, border = "spells", duration = true }, -- Last Stand (aura; cast 12975)
 				{ id = 1719, border = "spells", duration = true }, -- Recklessness
 				{ id = 20230, border = "spells", duration = true }, -- Retaliation
+				{ id = 2565, border = "spells", duration = true }, -- Shield Block
 				{ id = 871, border = "spells", duration = true }, -- Shield Wall
+				{ id = 23920, border = "spells", duration = true }, -- Spell Reflection
 				{ id = 12328, border = "spells", duration = true }, -- Sweeping Strikes
 			},
 			PALADIN = {
 				{ id = 31884, border = "spells", duration = true }, -- Avenging Wrath
+				{ id = 31821, border = "spells", duration = true }, -- Aura Mastery
 				{ id = 20216, border = "spells", duration = true }, -- Divine Favor
 				{ id = 54428, border = "spells", duration = true }, -- Divine Plea
+				{ id = 498, border = "spells", duration = true }, -- Divine Protection
 				{ id = 642, border = "spells", duration = true }, -- Divine Shield
 				{ id = 1044, border = "spells", duration = true }, -- Hand of Freedom
-				{ id = 1022, border = "spells", duration = true }, -- Hand of Protection
+				{ id = 1022, border = "spells", duration = true, ranks = { 1022, 5599, 10278 } }, -- Hand of Protection
 				{ id = 1038, border = "spells", duration = true }, -- Hand of Salvation
 				{ id = 48952, border = "spells", duration = true, ranks = { 48951, 48952 } }, -- Holy Shield
 				{ id = 53601, border = "spells", duration = true }, -- Sacred Shield
+				{ id = 57318, border = "spells", duration = true }, -- Sanctified Wrath
 			},
 			HUNTER = {
 				{ id = 19574, border = "spells", duration = true }, -- Bestial Wrath
+				{ id = 34471, border = "spells", duration = true }, -- The Beast Within
+				{ id = 19263, border = "spells", duration = true }, -- Deterrence
 				{ id = 54216, border = "spells", duration = true }, -- Master's Call
 				{ id = 3045, border = "spells", duration = true }, -- Rapid Fire
 				{ id = 23989, border = "spells", duration = true }, -- Readiness
@@ -39,15 +46,20 @@ BT.WATCH_LISTS = {
 			ROGUE = {
 				{ id = 13750, border = "spells", duration = true }, -- Adrenaline Rush
 				{ id = 13877, border = "spells", duration = true }, -- Blade Flurry
-				{ id = 5277, border = "spells", duration = true }, -- Evasion
+				{ id = 31224, border = "spells", duration = true }, -- Cloak of Shadows
+				{ id = 5277, border = "spells", duration = true, ranks = { 5277, 26669 } }, -- Evasion
 				{ id = 51690, border = "spells", duration = true }, -- Killing Spree
 				{ id = 51713, border = "spells", duration = true }, -- Shadow Dance
+				{ id = 36563, border = "spells", duration = true, spellID = 36554 }, -- Shadowstep (aura; cast 36554)
 				{ id = 5171, border = "spells", duration = true }, -- Slice and Dice
-				{ id = 1856, border = "spells", duration = true }, -- Vanish
+				{ id = 11305, border = "spells", duration = true }, -- Sprint
+				{ id = 1856, border = "spells", duration = true, ranks = { 1856, 1857, 26889 } }, -- Vanish
 			},
 			PRIEST = {
 				{ id = 47585, border = "spells", duration = true }, -- Dispersion
+				{ id = 64901, border = "spells", duration = true }, -- Hymn of Hope
 				{ id = 14751, border = "spells", duration = true }, -- Inner Focus
+				{ id = 15286, border = "spells", duration = true }, -- Vampiric Embrace
 			},
 			DEATHKNIGHT = {
 				{ id = 48707, border = "spells", duration = true }, -- Anti-Magic Shell
@@ -57,31 +69,40 @@ BT.WATCH_LISTS = {
 				{ id = 47568, border = "spells", duration = true }, -- Empower Rune Weapon
 				{ id = 49206, border = "spells", duration = true }, -- Summon Gargoyle
 				{ id = 48792, border = "spells", duration = true }, -- Icebound Fortitude
+				{ id = 49039, border = "spells", duration = true }, -- Lichborne
 				{ id = 51271, border = "spells", duration = true }, -- Unbreakable Armor
 				{ id = 55233, border = "spells", duration = true }, -- Vampiric Blood
 			},
 			SHAMAN = {
 				{ id = 16166, border = "spells", duration = true }, -- Elemental Mastery
 				{ id = 51533, border = "spells", duration = true }, -- Feral Spirit
+				{ id = 16188, border = "spells", duration = true }, -- Nature's Swiftness
 				{ id = 30823, border = "spells", duration = true }, -- Shamanistic Rage
+				{ id = 55198, border = "spells", duration = true }, -- Tidal Force
 			},
 			MAGE = {
 				{ id = 12042, border = "spells", duration = true }, -- Arcane Power
 				{ id = 11129, border = "spells", duration = true }, -- Combustion
 				{ id = 12472, border = "spells", duration = true }, -- Icy Veins
+				{ id = 45438, border = "spells", duration = true }, -- Ice Block
+				{ id = 66, border = "spells", duration = true }, -- Invisibility
 				{ id = 55342, border = "spells", duration = true }, -- Mirror Image
 				{ id = 12043, border = "spells", duration = true }, -- Presence of Mind
 			},
 			WARLOCK = {
 				{ id = 47193, border = "spells", duration = true }, -- Demonic Empowerment
+				{ id = 18708, border = "spells", duration = true }, -- Fel Domination
 				{ id = 59672, border = "spells", duration = true }, -- Metamorphosis
 				{ id = 19028, border = "spells", duration = true }, -- Soul Link
 			},
 			DRUID = {
 				{ id = 22812, border = "spells", duration = true }, -- Barkskin
 				{ id = 50334, border = "spells", duration = true }, -- Berserk
+				{ id = 5229, border = "spells", duration = true }, -- Enrage
+				{ id = 22842, border = "spells", duration = true }, -- Frenzied Regeneration
 				{ id = 29166, border = "spells", duration = true }, -- Innervate
 				{ id = 53312, border = "spells", duration = true }, -- Nature's Grasp
+				{ id = 53201, border = "spells", duration = true }, -- Starfall
 				{ id = 61336, border = "spells", duration = true }, -- Survival Instincts
 				{ id = 50213, border = "spells", duration = true }, -- Tiger's Fury
 			},
@@ -98,51 +119,64 @@ BT.WATCH_LISTS = {
 			PALADIN = {
 				{ id = 54149, border = "procs" }, -- Infusion of Light
 				{ id = 53657, border = "procs", duration = true }, -- Judgements of the Pure
+				{ id = 66922, border = "procs", duration = true }, -- Sacred Shield (Flash of Light crit)
 				{ id = 59578, border = "procs" }, -- The Art of War
 			},
 			HUNTER = {
 				{ id = 53220, border = "procs", duration = true }, -- Improved Steady Shot
 				{ id = 56453, border = "procs" }, -- Lock and Load
-				{ id = 64420, border = "procs", duration = true }, -- Sniper Training
+				{ id = 35098, border = "procs", duration = true }, -- Rapid Killing
+				{ id = 64420, border = "procs", duration = true, ranks = { 64418, 64419, 64420 } }, -- Sniper Training
+				{ id = 34720, border = "procs" }, -- Thrill of the Hunt
 			},
 			ROGUE = {
 				{ id = 63848, border = "procs", duration = true }, -- Hunger For Blood
-				{ id = 58426, border = "procs", duration = true }, -- Overkill
+				{ id = 31665, border = "procs", duration = true }, -- Master of Subtlety
+				{ id = 58427, border = "procs", duration = true }, -- Overkill
 			},
 			PRIEST = {
 				{ id = 52893, border = "procs", duration = true }, -- Borrowed Time
 				{ id = 34754, border = "procs", duration = true }, -- Holy Concentration
 				{ id = 47755, border = "procs", duration = true }, -- Improved Spirit Tap
+				{ id = 63944, border = "procs", duration = true }, -- Renewed Hope
+				{ id = 63734, border = "procs", duration = true, stacks = true, ranks = { 63731, 63735, 63734 } }, -- Serendipity
 				{ id = 33151, border = "procs" }, -- Surge of Light
 			},
 			DEATHKNIGHT = {
 				{ id = 59052, border = "procs" }, -- Freezing Fog (Rime)
 				{ id = 51124, border = "procs" }, -- Killing Machine
+				{ id = 50421, border = "procs", duration = true, stacks = true }, -- Scent of Blood
 				{ id = 81340, border = "procs" }, -- Sudden Doom
 			},
 			SHAMAN = {
 				{ id = 16246, border = "procs" }, -- Clearcasting
+				{ id = 51466, border = "procs", duration = true }, -- Elemental Oath
 				{ id = 53804, border = "procs" }, -- Lightning Overload
 				{ id = 53817, border = "procs", stacks = true }, -- Maelstrom Weapon
 				{ id = 53390, border = "procs", stacks = true }, -- Tidal Waves
 			},
 			MAGE = {
 				{ id = 57761, border = "procs", stacks = true }, -- Brain Freeze
+				{ id = 44450, border = "procs", duration = true }, -- Burnout
 				{ id = 12536, border = "procs" }, -- Clearcasting
 				{ id = 44544, border = "procs", stacks = true }, -- Fingers of Frost
 				{ id = 48108, border = "procs" }, -- Hot Streak
+				{ id = 28682, border = "procs", duration = true }, -- Combustion (crit proc)
 				{ id = 44401, border = "procs", stacks = true }, -- Missile Barrage
+				{ id = 55080, border = "procs" }, -- Shattered Barrier
 			},
 			WARLOCK = {
 				{ id = 34936, border = "procs" }, -- Backlash
-				{ id = 63167, border = "procs" }, -- Decimation
+				{ id = 63167, border = "procs", ranks = { 63167, 64343, 71162, 71165 } }, -- Decimation
 				{ id = 64371, border = "procs", duration = true }, -- Eradication
+				{ id = 47283, border = "procs" }, -- Empowered Imp
 				{ id = 47258, border = "procs", stacks = true }, -- Molten Core
 				{ id = 17941, border = "procs" }, -- Shadow Trance (Nightfall)
 			},
 			DRUID = {
 				{ id = 48518, border = "procs", duration = true }, -- Eclipse (Lunar)
 				{ id = 48517, border = "procs", duration = true }, -- Eclipse (Solar)
+				{ id = 16886, border = "procs", duration = true }, -- Nature's Grace
 				{ id = 16870, border = "procs" }, -- Omen of Clarity
 				{ id = 62606, border = "procs", duration = true }, -- Savage Defense
 			},
