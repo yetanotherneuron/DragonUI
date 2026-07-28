@@ -817,7 +817,8 @@ local function GetAuraBorderTintValues()
 end
 
 -- force=true: enable / intensity / custom color change (overwrites Auras color).
--- force=false/nil: login/profile apply — keep Auras color if the player set *_color_user_override.
+-- force=false/nil: login/profile apply — keep Auras color if the player set buff_color_user_override.
+-- Debuff borders keep Blizzard dispel-type colors (or per-type overrides); dark mode does not sync them.
 local function SyncAuraBorderColorFromDarkMode(tint, force)
     local modules = addon.db and addon.db.profile and addon.db.profile.modules
     if not modules then return end
@@ -826,30 +827,15 @@ local function SyncAuraBorderColorFromDarkMode(tint, force)
         ab = {}
         modules.auraborders = ab
     end
-    local syncBuff = force or not ab.buff_color_user_override
-    local syncDebuff = force or not ab.debuff_color_user_override
-    if not syncBuff and not syncDebuff then
+    if not force and ab.buff_color_user_override then
         return
     end
     if tint then
-        if syncBuff then
-            ab.buff_color = { r = tint[1], g = tint[2], b = tint[3] }
-            ab.buff_color_user_override = false
-        end
-        if syncDebuff then
-            ab.debuff_color = { r = tint[1], g = tint[2], b = tint[3] }
-            ab.debuff_color_user_override = false
-        end
+        ab.buff_color = { r = tint[1], g = tint[2], b = tint[3] }
     else
-        if syncBuff then
-            ab.buff_color = { r = 0.2, g = 0.2, b = 0.2 }
-            ab.buff_color_user_override = false
-        end
-        if syncDebuff then
-            ab.debuff_color = { r = 0.2, g = 0.2, b = 0.2 }
-            ab.debuff_color_user_override = false
-        end
+        ab.buff_color = { r = 0.2, g = 0.2, b = 0.2 }
     end
+    ab.buff_color_user_override = false
     if addon.RefreshAuraBordersSystem then
         addon.RefreshAuraBordersSystem()
     end

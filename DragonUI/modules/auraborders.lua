@@ -81,13 +81,51 @@ local function GetBuffColor()
     return 0.2, 0.2, 0.2
 end
 
-local function GetDebuffColor()
-    local cfg = GetConfig()
-    local c = cfg and cfg.debuff_color
-    if c and c.r then
+local DEBUFF_TYPE_KEYS = { "Magic", "Curse", "Poison", "Disease", "none" }
+
+local function GetBlizzardDebuffColor(debuffType, stock)
+    if stock and stock.GetVertexColor then
+        return stock:GetVertexColor()
+    end
+    local c = DebuffTypeColor and debuffType and DebuffTypeColor[debuffType]
+    if c then
         return c.r, c.g, c.b
     end
-    return 0.2, 0.2, 0.2
+    local none = DebuffTypeColor and DebuffTypeColor["none"]
+    if none then
+        return none.r, none.g, none.b
+    end
+    return 0.8, 0, 0
+end
+
+local function ResolveDebuffColor(button, stock)
+    local debuffType = button and button.debuffType
+    local cfg = GetConfig()
+    local overrides = cfg and cfg.debuff_type_colors
+    if debuffType and overrides then
+        local c = overrides[debuffType]
+        if c and c.r then
+            return c.r, c.g, c.b
+        end
+    end
+    return GetBlizzardDebuffColor(debuffType, stock)
+end
+
+local function MigrateFlatDebuffColor(cfg)
+    if not cfg or cfg.debuff_type_colors_migrated then return end
+    cfg.debuff_type_colors_migrated = true
+    if not cfg.debuff_color_user_override or not cfg.debuff_color or not cfg.debuff_color.r then
+        cfg.debuff_color = nil
+        cfg.debuff_color_user_override = nil
+        return
+    end
+    cfg.debuff_type_colors = cfg.debuff_type_colors or {}
+    local c = cfg.debuff_color
+    for _, key in ipairs(DEBUFF_TYPE_KEYS) do
+        cfg.debuff_type_colors[key] = { r = c.r, g = c.g, b = c.b }
+    end
+    cfg.debuff_color = nil
+    cfg.debuff_color_user_override = nil
 end
 
 -- Soft-edged frame texture vanishes faster than the solid icon at the same alpha.
@@ -424,7 +462,7 @@ local function StyleAura(button, isDebuff, stockBorderName, isUnit)
     local stock = (stockBorderName and _G[stockBorderName]) or button.Border
     local r, g, b
     if isDebuff then
-        r, g, b = GetDebuffColor()
+        r, g, b = ResolveDebuffColor(button, stock)
     else
         r, g, b = GetBuffColor()
     end
@@ -570,6 +608,7 @@ local function RefreshLayoutPreviewBorders()
 end
 
 function addon.ApplyAuraBordersSystem()
+    MigrateFlatDebuffColor(GetConfig())
     AuraBordersModule.initialized = true
     InstallHooks()
     AuraBordersModule.applied = true

@@ -215,6 +215,39 @@ local function RefreshAuraBorders()
     end
 end
 
+local DEBUFF_TYPE_KEYS = { "Magic", "Curse", "Poison", "Disease", "none" }
+
+local DEBUFF_TYPE_LABELS = {
+    Magic = "Magic Debuff Color",
+    Curse = "Curse Debuff Color",
+    Poison = "Poison Debuff Color",
+    Disease = "Disease Debuff Color",
+    none = "Physical Debuff Color",
+}
+
+local function GetBlizzardDebuffTypeColor(debuffType)
+    local c = _G.DebuffTypeColor and debuffType and _G.DebuffTypeColor[debuffType]
+    if c then
+        return c.r, c.g, c.b
+    end
+    local none = _G.DebuffTypeColor and _G.DebuffTypeColor["none"]
+    if none then
+        return none.r, none.g, none.b
+    end
+    return 0.8, 0, 0
+end
+
+local function GetDebuffTypeColorOverride(debuffType)
+    local colors = GetAuraBordersField("debuff_type_colors")
+    if colors then
+        local c = colors[debuffType]
+        if c and c.r then
+            return c.r, c.g, c.b
+        end
+    end
+    return GetBlizzardDebuffTypeColor(debuffType)
+end
+
 local function BuildAurasTab(scroll)
     -- ====================================================================
     -- AURA BORDERS
@@ -271,55 +304,35 @@ local function BuildAurasTab(scroll)
         hasAlpha = false,
     })
 
-    C:AddColorPicker(borderSection, {
-        label = LO["Debuff Border Color"],
-        getFunc = function()
-            local c = GetAuraBordersField("debuff_color")
-            if c and c.r then return c.r, c.g, c.b end
-            return 0.2, 0.2, 0.2
-        end,
-        setFunc = function(r, g, b)
-            local ab = C:EnsureModuleTable("auraborders")
-            ab.debuff_color = { r = r, g = g, b = b }
-            -- Keep this color across reloads even if Dark Mode stays enabled.
-            ab.debuff_color_user_override = true
-        end,
-        callback = RefreshAuraBorders,
-        disabled = function() return not IsAuraBordersEnabled() end,
-        hasAlpha = false,
-    })
+    C:AddDescription(borderSection,
+        LO["Debuff borders use Blizzard dispel-type colors by default. Override individual types below."])
 
-    local function CopyAuraBorderColor(fromKey, toKey, toOverrideKey)
-        local ab = C:EnsureModuleTable("auraborders")
-        local src = ab[fromKey]
-        local r, g, b = 0.2, 0.2, 0.2
-        if src and src.r then
-            r, g, b = src.r, src.g, src.b
-        end
-        ab[toKey] = { r = r, g = g, b = b }
-        ab[toOverrideKey] = true
-        RefreshAuraBorders()
-        -- Rebuild so color picker swatches reflect the copied values.
-        Panel:SelectTab("auras")
+    for _, debuffType in ipairs(DEBUFF_TYPE_KEYS) do
+        C:AddColorPicker(borderSection, {
+            label = LO[DEBUFF_TYPE_LABELS[debuffType]],
+            getFunc = function()
+                return GetDebuffTypeColorOverride(debuffType)
+            end,
+            setFunc = function(r, g, b)
+                local ab = C:EnsureModuleTable("auraborders")
+                ab.debuff_type_colors = ab.debuff_type_colors or {}
+                ab.debuff_type_colors[debuffType] = { r = r, g = g, b = b }
+            end,
+            callback = RefreshAuraBorders,
+            disabled = function() return not IsAuraBordersEnabled() end,
+            hasAlpha = false,
+        })
     end
 
-    local colorSyncRow = C:AddRow(borderSection)
-    C:AddButton(colorSyncRow, {
-        label = LO["Copy Buff Color to Debuff"],
-        desc = LO["Set debuff border color to match the current buff border color."],
-        width = 210,
+    C:AddButton(borderSection, {
+        label = LO["Reset Debuff Colors"],
+        desc = LO["Clear all debuff color overrides and restore Blizzard dispel-type colors."],
         disabled = function() return not IsAuraBordersEnabled() end,
         callback = function()
-            CopyAuraBorderColor("buff_color", "debuff_color", "debuff_color_user_override")
-        end,
-    })
-    C:AddButton(colorSyncRow, {
-        label = LO["Copy Debuff Color to Buff"],
-        desc = LO["Set buff border color to match the current debuff border color."],
-        width = 210,
-        disabled = function() return not IsAuraBordersEnabled() end,
-        callback = function()
-            CopyAuraBorderColor("debuff_color", "buff_color", "buff_color_user_override")
+            local ab = C:EnsureModuleTable("auraborders")
+            ab.debuff_type_colors = {}
+            RefreshAuraBorders()
+            Panel:SelectTab("auras")
         end,
     })
 
