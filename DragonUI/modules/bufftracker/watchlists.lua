@@ -208,7 +208,7 @@ BT.WATCH_LISTS = {
 		{ id = 55610, border = "utility" }, -- Improved Icy Talons
 		{ id = 24907, border = "utility" }, -- Leader of the Pack
 		{ id = 48469, border = "utility", lowTime = true }, -- Mark of the Wild
-		{ id = 48336, border = "utility" }, -- Moonkin Aura
+		-- { id = 48336, border = "utility" }, -- Moonkin Aura
 		{ id = 48161, border = "utility", lowTime = true }, -- Power Word: Fortitude
 		{ id = 10060, border = "utility", duration = true }, -- Power Infusion
 		{ id = 48074, border = "utility", lowTime = true }, -- Prayer of Spirit
