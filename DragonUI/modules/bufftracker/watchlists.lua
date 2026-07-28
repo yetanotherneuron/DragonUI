@@ -319,7 +319,8 @@ BT.WATCH_LISTS = {
 		{ id = 47437, border = "stacks", duration = true, ranks = { 1160, 6190, 11554, 11555, 11556, 25202, 25203, 47437 } }, -- Demoralizing Shout
 		{ id = 1715, border = "stacks", duration = true }, -- Hamstring
 		{ id = 772, border = "stacks", duration = true, ranks = { 6546, 6547, 6548, 11572, 11573, 11574 } }, -- Rend
-		{ id = 7386, border = "stacks", duration = true, stacks = true, ranks = { 7405, 8380, 11596, 11597, 25225 } }, -- Sunder Armor
+        { id = 7386,  border = "stacks", duration = true, stacks = true,                                                         ranks = { 7405, 8380, 11596, 11597, 25225 } }, -- Sunder Armor
+        { id = 12323, border = "stacks", duration = true }, -- Piercing Howl
 	},
 	enchants = {
 		{ id = 59620, border = "buffs_enchants", duration = true }, -- Berserking (Enchant proc)
