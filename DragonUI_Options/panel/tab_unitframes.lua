@@ -857,7 +857,7 @@ local function BuildBuffTrackerSection(scroll)
                 if cats and cats[cat.key] ~= nil then
                     return cats[cat.key] == true
                 end
-                return cat.key == "classes_actives" or cat.key == "classes_passives"
+                return cat.key == "classes_actives" or cat.key == "classes_passives" or cat.key == "procs"
             end,
             setFunc = function(val)
                 EnsureModuleTable("bufftracker")

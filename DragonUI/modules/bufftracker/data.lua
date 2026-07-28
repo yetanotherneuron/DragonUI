@@ -59,7 +59,7 @@ BT.CATEGORY_DEFAULTS_ENABLED = {
 	classes_actives = true,
 	classes_passives = true,
 	buffs = false,
-	procs = false,
+	procs = true,
 	consume = false,
 	stacks = true,
 	enchants = false,
@@ -115,6 +115,10 @@ function BT.NormalizeSpellEntry(entry)
 	if showStacks == nil then
 		showStacks = entry.showStacks
 	end
+	local showLowTime = entry.lowTime
+	if showLowTime == nil then
+		showLowTime = entry.showLowTime
+	end
 
 	local ranks = entry.ranks
 	if type(ranks) ~= "table" or #ranks == 0 then
@@ -128,6 +132,7 @@ function BT.NormalizeSpellEntry(entry)
 		borderColor = borderColor,
 		showDuration = showDuration,
 		showStacks = showStacks,
+		showLowTime = showLowTime,
 		ranks = ranks,
 	}
 end
@@ -251,6 +256,7 @@ function BT.BuildWatchEntries(cfg)
 			borderColor = normalized.borderColor,
 			showDuration = normalized.showDuration,
 			showStacks = normalized.showStacks,
+			showLowTime = normalized.showLowTime,
 		}
 	end
 
@@ -294,6 +300,11 @@ function BT.BuildWatchEntries(cfg)
 
 	addHardcodedList("buffs")
 	addHardcodedList("procs")
+
+	if BT.ICD_RegisterWatchEntries then
+		BT.ICD_RegisterWatchEntries(registerWatchID, seen)
+	end
+
 	addHardcodedList("consume")
 	addHardcodedList("stacks")
 	addHardcodedList("enchants")
@@ -417,11 +428,37 @@ function BT.DefaultCategoriesTable()
 		classes_actives = true,
 		classes_passives = true,
 		buffs = false,
-		procs = false,
+		procs = true,
 		consume = false,
 		stacks = true,
 		enchants = false,
 	}
+end
+
+function BT.ShouldShowLowTimeBuff(cfg, watch, aura)
+	if not watch or not watch.showLowTime then
+		return true
+	end
+	if not aura or not aura.expiration or aura.expiration <= 0 then
+		return false
+	end
+	local remain = aura.remain
+	if remain == nil or remain <= 0 then
+		remain = aura.expiration - GetTime()
+	end
+	if remain <= 0 then
+		return false
+	end
+	local threshold = (cfg and cfg.buff_low_time_threshold_sec) or 300
+	if remain <= threshold then
+		return true
+	end
+	local total = aura.duration
+	if total and total > 0 then
+		local pct = (cfg and cfg.buff_low_time_percent) or 0.10
+		return remain <= (total * pct)
+	end
+	return false
 end
 
 function BT.NeedsTargetAuraScan(cfg)

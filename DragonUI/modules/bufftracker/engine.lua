@@ -209,17 +209,29 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 	local state = BT.engineState
 	local display = {}
 	local tick = GetTime()
+	local resolvedActive = {}
 
-	for spellID, aura in pairs(activeAuras) do
-		local watch = watchMap[spellID]
+	for auraKey, aura in pairs(activeAuras) do
+		local rawSpellID = aura.spellID or auraKey
+		local watchSpellID, watch = BT.FindWatchForAura(watchMap, aura.name, rawSpellID)
 		if watch and BT.ShouldDisplayWatch(cfg, watch) then
-			if not state.firstSeen[spellID] then
-				state.firstSeen[spellID] = tick
+			local spellID = watchSpellID or rawSpellID
+			local displayKey = aura.icdOnly and tostring(auraKey) or tostring(spellID)
+			resolvedActive[displayKey] = true
+			if not state.firstSeen[displayKey] then
+				state.firstSeen[displayKey] = tick
 			end
-			state.lastTexture[spellID] = aura.texture
+			state.lastTexture[displayKey] = aura.texture
 
 			local visible = true
-			if watch.category == "consume" then
+			if (watch.category == "buffs" or watch.category == "consume") and watch.showLowTime then
+				if aura.expiration and aura.expiration > 0 then
+					aura.remain = aura.expiration - tick
+					visible = BT.ShouldShowLowTimeBuff(cfg, watch, aura)
+				else
+					visible = false
+				end
+			elseif watch.category == "consume" then
 				if aura.expiration > 0 then
 					visible = ShouldShowConsumable(cfg, aura.remain)
 				else
@@ -231,7 +243,7 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 				local showDuration, showStacks = ResolveShowFlags(cfg, watch, aura)
 				local glowEnabled, glowColor = ResolveGlowOptions(cfg, watch)
 				display[#display + 1] = {
-					key = tostring(spellID),
+					key = displayKey,
 					spellID = spellID,
 					tooltipID = watch.tooltipID or spellID,
 					category = watch.category,
@@ -242,11 +254,12 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 					showDuration = showDuration,
 					showStacks = showStacks,
 					forceStacks = watch.showStacks == true,
+					icdOnly = aura.icdOnly == true,
 					glowEnabled = glowEnabled,
 					glowColor = glowColor,
 					glowScale = cfg.icon_glow_scale or 1.2,
 					glowAlpha = cfg.icon_glow_alpha or 1.0,
-					firstSeen = state.firstSeen[spellID],
+					firstSeen = state.firstSeen[displayKey],
 					categoryRank = CategoryRank(watch.category),
 				}
 			end
@@ -275,7 +288,7 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 	state.wasConsumableActive = nextConsumable
 
 	for spellID in pairs(state.firstSeen) do
-		if not activeAuras[spellID] then
+		if not resolvedActive[spellID] then
 			state.firstSeen[spellID] = nil
 		end
 	end
@@ -299,6 +312,9 @@ local function ScanActiveAuras(cfg, watchMap)
 			active[spellID] = aura
 		end
 	end
+	if BT.MergeICDProcAuras then
+		BT.MergeICDProcAuras(active, watchMap, cfg)
+	end
 	return active
 end
 
@@ -311,6 +327,9 @@ function BT.SyncEngineEvents(cfg)
 		frame:RegisterEvent("PLAYER_TARGET_CHANGED")
 	else
 		frame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+	end
+	if BT.SyncICDEvents then
+		BT.SyncICDEvents(frame, cfg and BT.IsCategoryEnabled(cfg, "procs"))
 	end
 end
 
@@ -365,6 +384,18 @@ function BT.StartEngine()
 	if not frame then
 		frame = CreateFrame("Frame", "DragonUI_BuffTrackerEngine")
 		frame:SetScript("OnEvent", function(_, event, unit)
+			if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+				if BT.OnICDCombatLogEvent then
+					BT.OnICDCombatLogEvent()
+				end
+				return
+			end
+			if event == "PLAYER_EQUIPMENT_CHANGED" then
+				if BT.OnICDEquipmentChanged then
+					BT.OnICDEquipmentChanged()
+				end
+				return
+			end
 			if event == "UNIT_AURA" then
 				if unit == "player" or unit == "target" then
 					BT.UpdateTracker()
@@ -376,6 +407,7 @@ function BT.StartEngine()
 		frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 		frame:RegisterEvent("PLAYER_TALENT_UPDATE")
 		frame:RegisterEvent("SPELLS_CHANGED")
+		frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 		BT.engineFrame = frame
 	end
 	frame:SetScript("OnUpdate", BT.OnUpdateEngine)

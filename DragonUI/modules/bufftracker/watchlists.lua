@@ -10,6 +10,8 @@ BT.WATCH_LISTS = {
 			WARRIOR = {
 				{ id = 46924, border = "spells", duration = true }, -- Bladestorm
 				{ id = 12292, border = "spells", duration = true }, -- Death Wish
+				{ id = 29131, border = "spells", duration = true, spellID = 2687, ranks = { 2687 } }, -- Bloodrage (aura; cast 2687)
+				{ id = 18499, border = "spells", duration = true }, -- Berserker Rage
 				{ id = 55694, border = "spells", duration = true }, -- Enraged Regeneration
 				{ id = 12976, border = "spells", duration = true }, -- Last Stand (aura; cast 12975)
 				{ id = 1719, border = "spells", duration = true }, -- Recklessness
@@ -147,36 +149,46 @@ BT.WATCH_LISTS = {
 	},
 	buffs = {
 		{ id = 53138, border = "utility" }, -- Abomination's Might
-		{ id = 48932, border = "utility", ranks = { 48932, 48933, 48934 } }, -- Blessing of Might
-		{ id = 20217, border = "utility", ranks = { 20217, 25898 } }, -- Blessing of Kings
-		{ id = 67480, border = "utility", ranks = { 20911, 25899, 67480 } }, -- Blessing of Sanctuary
-		{ id = 48938, border = "utility", ranks = { 48936, 48938 } }, -- Blessing of Wisdom
+		{ id = 48932, border = "utility", lowTime = true, ranks = { 48932, 48933, 48934 } }, -- Blessing of Might
+		{ id = 20217, border = "utility", lowTime = true, ranks = { 20217, 25898 } }, -- Blessing of Kings
+		{ id = 67480, border = "utility", lowTime = true, ranks = { 20911, 25899, 67480 } }, -- Blessing of Sanctuary
+		{ id = 48938, border = "utility", lowTime = true, ranks = { 48936, 48938 } }, -- Blessing of Wisdom
 		{ id = 2825, border = "utility", duration = true }, -- Bloodlust
-		{ id = 47436, border = "utility", ranks = { 47436, 47437 } }, -- Battle Shout
-		{ id = 47440, border = "utility", ranks = { 47440, 47441 } }, -- Commanding Shout
+		{ id = 47436, border = "utility", lowTime = true, ranks = { 47436, 47437 } }, -- Battle Shout
+		{ id = 47440, border = "utility", lowTime = true, ranks = { 47440, 47441 } }, -- Commanding Shout
 		{ id = 64205, border = "utility", duration = true }, -- Divine Sacrifice
-		{ id = 48942, border = "utility" }, -- Devotion Aura
+		{ id = 59542, border = "utility", duration = true, ranks = { 28880, 59542, 59543, 59544, 59545, 59546, 59547, 59548 } }, -- Gift of the Naaru (Draenei racial HoT)
+		-- Paladin auras (passive, no expiry — uncomment to track):
+		-- { id = 48942, border = "utility" }, -- Devotion Aura
+		-- { id = 54043, border = "utility" }, -- Retribution Aura
+		-- { id = 19746, border = "utility" }, -- Concentration Aura
+		-- { id = 48943, border = "utility" }, -- Shadow Resistance Aura
+		-- { id = 48945, border = "utility" }, -- Frost Resistance Aura
+		-- { id = 48947, border = "utility" }, -- Fire Resistance Aura
+		-- { id = 32223, border = "utility" }, -- Crusader Aura
 		{ id = 32182, border = "utility", duration = true }, -- Heroism
-		{ id = 57330, border = "utility" }, -- Horn of Winter
+		{ id = 57330, border = "utility", lowTime = true }, -- Horn of Winter
 		{ id = 53292, border = "utility" }, -- Hunting Party
 		{ id = 55610, border = "utility" }, -- Improved Icy Talons
 		{ id = 24907, border = "utility" }, -- Leader of the Pack
-		{ id = 48469, border = "utility" }, -- Mark of the Wild
+		{ id = 48469, border = "utility", lowTime = true }, -- Mark of the Wild
 		{ id = 48336, border = "utility" }, -- Moonkin Aura
-		{ id = 48161, border = "utility" }, -- Power Word: Fortitude
+		{ id = 48161, border = "utility", lowTime = true }, -- Power Word: Fortitude
 		{ id = 10060, border = "utility", duration = true }, -- Power Infusion
-		{ id = 48074, border = "utility" }, -- Prayer of Spirit
-		{ id = 54043, border = "utility" }, -- Retribution Aura
-		{ id = 48169, border = "utility" }, -- Shadow Protection
+		{ id = 48074, border = "utility", lowTime = true }, -- Prayer of Spirit
+		{ id = 48169, border = "utility", lowTime = true }, -- Shadow Protection
 		{ id = 58643, border = "utility" }, -- Strength of Earth
 		{ id = 57934, border = "utility", duration = true }, -- Tricks of the Trade (damage buff)
-		{ id = 19506, border = "utility" }, -- Trueshot Aura
+		-- { id = 19506, border = "utility" }, -- Trueshot Aura (passive raid buff)
 	},
 	procs = {
 		{ id = 72412, border = "procs", duration = true }, -- Ashen Verdict Ring (Frostforged Champion)
 		{ id = 59629, border = "procs", duration = true }, -- Black Heart (Tidal Fury proc)
 		{ id = 67703, border = "procs", duration = true, ranks = { 67703, 67708, 67772, 67773 } }, -- Death's Choice Paragon
-		{ id = 71485, border = "procs", duration = true, ranks = { 71485, 71486, 71491, 71556, 71558, 71559 } }, -- Deathbringer's Will
+		{ id = 71485, border = "procs", duration = true, ranks = {
+			71484, 71485, 71486, 71487, 71490, 71491, 71492, -- Normal
+			71556, 71557, 71558, 71559, 71560, 71561, -- Heroic
+		} }, -- Deathbringer's Will (30s proc, 105s ICD)
 		{ id = 71601, border = "procs", duration = true, ranks = { 71601, 71644 } }, -- Dislodged Foreign Object
 		{ id = 60229, border = "procs", duration = true, ranks = { 60229, 60233, 60234, 60235 } }, -- Greatness
 		{ id = 54758, border = "procs", duration = true }, -- Hyperspeed Accelerators
@@ -195,22 +207,22 @@ BT.WATCH_LISTS = {
 		{ id = 73422, border = "procs", duration = true }, -- Shadowmourne Chaos Bane
 	},
 	consume = {
-		{ id = 53755, border = "consumables" }, -- Flask of the Frost Wyrm (aura 53755)
-		{ id = 53758, border = "consumables" }, -- Flask of Stoneblood (aura 53758)
-		{ id = 53760, border = "consumables" }, -- Flask of Endless Rage
-		{ id = 54212, border = "consumables" }, -- Flask of Pure Mojo
-		{ id = 60345, border = "consumables" }, -- Elixir of Armor Piercing (aura, not item)
-		{ id = 60344, border = "consumables" }, -- Elixir of Expertise (aura, not item)
-		{ id = 60346, border = "consumables" }, -- Elixir of Lightning Speed (aura, not item)
-		{ id = 60343, border = "consumables" }, -- Elixir of Mighty Defense (aura, not item)
-		{ id = 53751, border = "consumables" }, -- Elixir of Mighty Fortitude
-		{ id = 53764, border = "consumables" }, -- Elixir of Mighty Mageblood
-		{ id = 60347, border = "consumables" }, -- Elixir of Mighty Thoughts
-		{ id = 57426, border = "consumables" }, -- Fish Feast (item use aura)
-		{ id = 57341, border = "consumables" }, -- Firecracker Salmon
-		{ id = 57357, border = "consumables" }, -- Hearty Rhino (item use aura)
-		{ id = 57344, border = "consumables" }, -- Imperial Manta Steak (item use aura)
-		{ id = 57326, border = "consumables" }, -- Tender Shoveltusk Steak (item use aura)
+		{ id = 53755, border = "consumables", lowTime = true }, -- Flask of the Frost Wyrm (aura 53755)
+		{ id = 53758, border = "consumables", lowTime = true }, -- Flask of Stoneblood (aura 53758)
+		{ id = 53760, border = "consumables", lowTime = true }, -- Flask of Endless Rage
+		{ id = 54212, border = "consumables", lowTime = true }, -- Flask of Pure Mojo
+		{ id = 60345, border = "consumables", lowTime = true }, -- Elixir of Armor Piercing (aura, not item)
+		{ id = 60344, border = "consumables", lowTime = true }, -- Elixir of Expertise (aura, not item)
+		{ id = 60346, border = "consumables", lowTime = true }, -- Elixir of Lightning Speed (aura, not item)
+		{ id = 60343, border = "consumables", lowTime = true }, -- Elixir of Mighty Defense (aura, not item)
+		{ id = 53751, border = "consumables", lowTime = true }, -- Elixir of Mighty Fortitude
+		{ id = 53764, border = "consumables", lowTime = true }, -- Elixir of Mighty Mageblood
+		{ id = 60347, border = "consumables", lowTime = true }, -- Elixir of Mighty Thoughts
+		{ id = 57426, border = "consumables", lowTime = true }, -- Fish Feast (item use aura)
+		{ id = 57341, border = "consumables", lowTime = true }, -- Firecracker Salmon
+		{ id = 57357, border = "consumables", lowTime = true }, -- Hearty Rhino (item use aura)
+		{ id = 57344, border = "consumables", lowTime = true }, -- Imperial Manta Steak (item use aura)
+		{ id = 57326, border = "consumables", lowTime = true }, -- Tender Shoveltusk Steak (item use aura)
 	},
 	stacks = {
 		{ id = 55078, border = "stacks", duration = true }, -- Blood Plague

@@ -206,6 +206,7 @@ function BT.LayoutIcons(entries)
 			expiration = entry.expiration,
 			duration = entry.duration,
 			count = entry.count,
+			icdOnly = entry.icdOnly,
 			glowEnabled = entry.glowEnabled,
 			glowColor = entry.glowColor,
 			glowScale = entry.glowScale,

@@ -309,7 +309,12 @@ function BT.UpdateIconFrame(icon, opts)
 			icon._cdDuration = duration
 		end
 		icon.cooldown:Show()
-		ResetIconTint(icon)
+		if opts.icdOnly and icon.icon.SetDesaturated then
+			icon.icon:SetDesaturated(true)
+			icon.icon:SetVertexColor(0.65, 0.65, 0.65, 1)
+		else
+			ResetIconTint(icon)
+		end
 	else
 		icon.durationText:SetText("")
 		icon.durationText:Hide()

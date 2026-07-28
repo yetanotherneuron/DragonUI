@@ -47,6 +47,7 @@ local function GetOverlayGlow()
 		numGlows = numGlows + 1
 		overlay = CreateFrame("Frame", "DragonUIBuffTrackerGlow" .. numGlows, UIParent, "DragonUIActionBarButtonSpellActivationAlert")
 		overlay:EnableMouse(false)
+		overlay:Hide()
 		local animOut = overlay.animOut
 		animOut.isPlaying = false
 		animOut.IsPlaying = IsAnimPlaying
@@ -75,16 +76,11 @@ function BT.PlayActiveGlow(icon, color, scale, alpha)
 	end
 
 	ApplyGlowLayout(icon, overlay, scale, alpha)
-	if overlay.spark and overlay.spark.SetVertexColor then
-		overlay.spark:SetVertexColor(color.r or 1, color.g or 1, color.b or 1)
-	end
-	icon:Show()
-	overlay:Show()
-	if overlay.animOut and overlay.animOut:IsPlaying() then
-		overlay.animOut:Stop()
-	end
-	if overlay.animIn then
-		overlay.animIn:Play()
+	if DragonUISpellAlert_ApplyBorderGlowOnly then
+		DragonUISpellAlert_ApplyBorderGlowOnly(overlay, icon, color)
+	else
+		icon:Show()
+		overlay:Show()
 	end
 end
 
@@ -113,13 +109,11 @@ function BT.PlayExpiredGlow(icon, scale, alpha, duration)
 	end
 
 	ApplyGlowLayout(icon, overlay, scale, alpha)
-	icon:Show()
-	overlay:Show()
-	if overlay.animOut and overlay.animOut:IsPlaying() then
-		overlay.animOut:Stop()
-	end
-	if overlay.animIn then
-		overlay.animIn:Play()
+	if DragonUISpellAlert_ApplyBorderGlowOnly then
+		DragonUISpellAlert_ApplyBorderGlowOnly(overlay, icon)
+	else
+		icon:Show()
+		overlay:Show()
 	end
 
 	local elapsed = 0
@@ -130,13 +124,11 @@ function BT.PlayExpiredGlow(icon, scale, alpha, duration)
 			if overlay.animIn and overlay.animIn:IsPlaying() then
 				overlay.animIn:Stop()
 			end
-			if overlay.animOut then
-				overlay.animOut.isPlaying = true
-				overlay.animOut:Play()
-			else
-				ReturnGlow(overlay)
-				self.duiExpiredGlow = nil
+			if overlay.animOut and overlay.animOut:IsPlaying() then
+				overlay.animOut:Stop()
 			end
+			ReturnGlow(overlay)
+			self.duiExpiredGlow = nil
 		end
 	end)
 end

@@ -35,6 +35,60 @@ local function ApplyGlowLayout(button, overlay)
 	overlay:SetAlpha(alpha)
 end
 
+-- Golden spell-active glow without the white spark/inner flash (animIn skipped).
+function DragonUISpellAlert_ApplyBorderGlowOnly(overlay, button, color)
+	if not overlay then
+		return
+	end
+	if overlay.animIn and overlay.animIn:IsPlaying() then
+		overlay.animIn:Stop()
+	end
+	if overlay.animOut and overlay.animOut:IsPlaying() then
+		overlay.animOut:Stop()
+	end
+
+	local frameWidth, frameHeight = overlay:GetSize()
+	if not frameWidth or frameWidth == 0 then
+		frameWidth, frameHeight = button:GetSize()
+	end
+	if not frameWidth or frameWidth == 0 then
+		frameWidth, frameHeight = 36, 36
+	end
+
+	local r, g, b = 1, 1, 1
+	if color then
+		r = color.r or color[1] or 1
+		g = color.g or color[2] or 1
+		b = color.b or color[3] or 1
+	end
+
+	-- White flash layers (spark + inner) stay hidden.
+	if overlay.spark then overlay.spark:SetAlpha(0) end
+	if overlay.innerGlow then
+		overlay.innerGlow:SetAlpha(0)
+		overlay.innerGlow:SetSize(frameWidth, frameHeight)
+	end
+	if overlay.innerGlowOver then overlay.innerGlowOver:SetAlpha(0) end
+	if overlay.outerGlowOver then
+		overlay.outerGlowOver:SetAlpha(0)
+		overlay.outerGlowOver:SetSize(frameWidth, frameHeight)
+	end
+
+	-- Steady-state golden glow (matches animIn OnFinished, minus the white intro).
+	if overlay.outerGlow then
+		overlay.outerGlow:SetSize(frameWidth, frameHeight)
+		overlay.outerGlow:SetAlpha(1)
+		overlay.outerGlow:SetVertexColor(r, g, b)
+	end
+	if overlay.ants then
+		overlay.ants:SetSize(frameWidth * 0.85, frameHeight * 0.85)
+		overlay.ants:SetAlpha(1)
+		overlay.ants:SetVertexColor(r, g, b)
+	end
+
+	overlay:Show()
+end
+
 function DragonUISpellAlertActionButton_Update(self)
 	if not self or not self.action then
 		return
@@ -64,6 +118,7 @@ function DragonUISpellAlertActionButton_GetOverlayGlow()
 		numOverlays = numOverlays + 1
 		overlay = CreateFrame("Frame", "DragonUIActionButtonOverlay" .. numOverlays, UIParent, "DragonUIActionBarButtonSpellActivationAlert")
 		overlay:EnableMouse(false)
+		overlay:Hide()
 		local animOut = overlay.animOut
 		animOut.isPlaying = false
 		animOut.IsPlaying = IsAnimPlaying
@@ -87,35 +142,22 @@ end
 function DragonUISpellAlertActionButton_ShowOverlayGlow(self)
 	if self.duiSpellAlertOverlay then
 		ApplyGlowLayout(self, self.duiSpellAlertOverlay)
-		if self.duiSpellAlertOverlay.animOut:IsPlaying() then
-			self.duiSpellAlertOverlay.animOut:Stop()
-			self.duiSpellAlertOverlay.animIn:Play()
-		end
 	else
 		self.duiSpellAlertOverlay = DragonUISpellAlertActionButton_GetOverlayGlow()
 		ApplyGlowLayout(self, self.duiSpellAlertOverlay)
-		self.duiSpellAlertOverlay.animIn:Play()
 	end
-	-- Ensure visible even if anim updates fail on this client.
-	local overlay = self.duiSpellAlertOverlay
-	if overlay then
-		overlay:Show()
-		overlay:SetAlpha(DragonUISpellAlert_GetGlowAlpha())
-		if overlay.outerGlow then overlay.outerGlow:SetAlpha(1) end
-		if overlay.ants then overlay.ants:SetAlpha(1) end
-	end
+	DragonUISpellAlert_ApplyBorderGlowOnly(self.duiSpellAlertOverlay, self)
 end
 
 function DragonUISpellAlertActionButton_HideOverlayGlow(self)
 	if self.duiSpellAlertOverlay then
-		if self.duiSpellAlertOverlay.animIn:IsPlaying() then
+		if self.duiSpellAlertOverlay.animIn and self.duiSpellAlertOverlay.animIn:IsPlaying() then
 			self.duiSpellAlertOverlay.animIn:Stop()
 		end
-		if self:IsVisible() then
-			self.duiSpellAlertOverlay.animOut:Play()
-		else
-			DragonUISpellAlertActionButton_OverlayGlowAnimOutFinished(self.duiSpellAlertOverlay.animOut)
+		if self.duiSpellAlertOverlay.animOut and self.duiSpellAlertOverlay.animOut:IsPlaying() then
+			self.duiSpellAlertOverlay.animOut:Stop()
 		end
+		DragonUISpellAlertActionButton_OverlayGlowAnimOutFinished(self.duiSpellAlertOverlay.animOut)
 	end
 end
 
@@ -162,6 +204,7 @@ function DragonUISpellAlertActionButton_ApplySettingsToActiveGlows()
 			local button = overlay:GetParent()
 			if button and button.duiSpellAlertOverlay == overlay then
 				ApplyGlowLayout(button, overlay)
+				DragonUISpellAlert_ApplyBorderGlowOnly(overlay, button)
 			else
 				overlay:SetAlpha(DragonUISpellAlert_GetGlowAlpha())
 			end
