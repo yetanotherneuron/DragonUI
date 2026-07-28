@@ -202,6 +202,7 @@ BT.WATCH_LISTS = {
 		-- { id = 48947, border = "utility" }, -- Fire Resistance Aura
 		-- { id = 32223, border = "utility" }, -- Crusader Aura
 		{ id = 32182, border = "utility", duration = true }, -- Heroism
+		{ id = 70867, border = "utility", duration = true }, -- Essence of the Blood Queen (ICC)
 		{ id = 57330, border = "utility", lowTime = true }, -- Horn of Winter
 		{ id = 53292, border = "utility" }, -- Hunting Party
 		{ id = 55610, border = "utility" }, -- Improved Icy Talons
@@ -260,16 +261,64 @@ BT.WATCH_LISTS = {
 		{ id = 57326, border = "consumables", lowTime = true }, -- Tender Shoveltusk Steak (item use aura)
 	},
 	stacks = {
+		-- Death Knight
 		{ id = 55078, border = "stacks", duration = true }, -- Blood Plague
 		{ id = 51735, border = "stacks", duration = true }, -- Ebon Plague
-		{ id = 8647, border = "stacks", duration = true, stacks = true, ranks = { 8649, 8650, 11197, 11198, 26866 } }, -- Expose Armor
-		{ id = 770, border = "stacks", duration = true, ranks = { 778, 9749, 9907, 26993 } }, -- Faerie Fire
 		{ id = 55095, border = "stacks", duration = true }, -- Frost Fever
+		{ id = 45524, border = "stacks", duration = true }, -- Chains of Ice
+		-- Druid
+		{ id = 770, border = "stacks", duration = true, ranks = { 778, 9749, 9907, 26993 } }, -- Faerie Fire
 		{ id = 48468, border = "stacks", duration = true }, -- Insect Swarm
+		{ id = 48568, border = "stacks", duration = true, stacks = true }, -- Lacerate
+		{ id = 48463, border = "stacks", duration = true }, -- Moonfire
+		{ id = 48574, border = "stacks", duration = true }, -- Rake
+		{ id = 49800, border = "stacks", duration = true }, -- Rip
+		-- Hunter
+		{ id = 60053, border = "stacks", duration = true, ranks = { 53301, 53302, 53303, 60053 } }, -- Explosive Shot
+		{ id = 53338, border = "stacks", duration = true }, -- Hunter's Mark
+		{ id = 49001, border = "stacks", duration = true }, -- Serpent Sting
+		{ id = 3034, border = "stacks", duration = true }, -- Viper Sting
+		-- Mage
+		{ id = 36032, border = "stacks", duration = true, stacks = true }, -- Arcane Blast (debuff)
+		{ id = 12654, border = "stacks", duration = true }, -- Ignite
 		{ id = 55360, border = "stacks", duration = true, stacks = true }, -- Living Bomb
-		{ id = 772, border = "stacks", duration = true, ranks = { 6546, 6547, 6548, 11572, 11573, 11574 } }, -- Rend
+		{ id = 22959, border = "stacks", duration = true }, -- Fire Vulnerability (Scorch)
+		-- Paladin
+		{ id = 53742, border = "stacks", duration = true, stacks = true }, -- Blood Corruption
+		{ id = 21183, border = "stacks", duration = true }, -- Heart of the Crusader
+		{ id = 31803, border = "stacks", duration = true, stacks = true }, -- Holy Vengeance
+		{ id = 20184, border = "stacks", duration = true }, -- Judgement of Justice
+		{ id = 20185, border = "stacks", duration = true }, -- Judgement of Light
+		{ id = 20186, border = "stacks", duration = true }, -- Judgement of Wisdom
+		{ id = 68055, border = "stacks", duration = true }, -- Judgements of the Just
+		-- Priest
+		{ id = 48300, border = "stacks", duration = true }, -- Devouring Plague
+		{ id = 15258, border = "stacks", stacks = true }, -- Shadow Weaving
+		{ id = 48125, border = "stacks", duration = true }, -- Shadow Word: Pain
+		{ id = 48160, border = "stacks", duration = true }, -- Vampiric Touch
+		-- Rogue
+		{ id = 2818, border = "stacks", duration = true, stacks = true }, -- Deadly Poison
+		{ id = 8647, border = "stacks", duration = true, stacks = true, ranks = { 8649, 8650, 11197, 11198, 26866 } }, -- Expose Armor
+		{ id = 703, border = "stacks", duration = true }, -- Garrote
+		{ id = 48672, border = "stacks", duration = true, ranks = { 1943, 8639, 8640, 11273, 11274, 11275, 26867, 48671, 48672 } }, -- Rupture
+		-- Shaman
+		{ id = 49233, border = "stacks", duration = true, ranks = { 8050, 8052, 8053, 10448, 29228, 25457, 49232, 49233 } }, -- Flame Shock
+		{ id = 17364, border = "stacks", duration = true }, -- Stormstrike
+		-- Warlock
+		{ id = 47813, border = "stacks", duration = true }, -- Corruption
+		{ id = 47864, border = "stacks", duration = true }, -- Curse of Agony
+		{ id = 47867, border = "stacks", duration = true }, -- Curse of Doom
+		{ id = 47865, border = "stacks", duration = true }, -- Curse of the Elements
+		{ id = 59164, border = "stacks", duration = true }, -- Haunt
+		{ id = 47811, border = "stacks", duration = true }, -- Immolate
+		{ id = 47836, border = "stacks", duration = true }, -- Seed of Corruption
 		{ id = 32389, border = "stacks", stacks = true }, -- Shadow Embrace
-		{ id = 15258, border = "stacks", stacks = true }, -- Shadow Weaving (verify on target vs self)
+		{ id = 47843, border = "stacks", duration = true }, -- Unstable Affliction
+		-- Warrior
+		{ id = 12721, border = "stacks", duration = true }, -- Deep Wounds
+		{ id = 47437, border = "stacks", duration = true, ranks = { 1160, 6190, 11554, 11555, 11556, 25202, 25203, 47437 } }, -- Demoralizing Shout
+		{ id = 1715, border = "stacks", duration = true }, -- Hamstring
+		{ id = 772, border = "stacks", duration = true, ranks = { 6546, 6547, 6548, 11572, 11573, 11574 } }, -- Rend
 		{ id = 7386, border = "stacks", duration = true, stacks = true, ranks = { 7405, 8380, 11596, 11597, 25225 } }, -- Sunder Armor
 	},
 	enchants = {
