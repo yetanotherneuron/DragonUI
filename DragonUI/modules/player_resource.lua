@@ -232,6 +232,44 @@ local function GetHealthTexture()
     return path or BAR_TEXTURE_PATHS.blizzard
 end
 
+function PlayerResourceModule.GetHealthBarTextureVisual()
+    local health = PlayerResourceModule.frames and PlayerResourceModule.frames.health
+    if not health then
+        return nil
+    end
+
+    local info = {
+        setting = GetBarTextureSetting(),
+        path = GetHealthTexture(),
+        left = 0,
+        right = 1,
+        top = 0,
+        bottom = 1,
+        horizTile = true,
+        vertTile = false,
+    }
+
+    local statusTex = health:GetStatusBarTexture()
+    if statusTex then
+        local path = statusTex:GetTexture()
+        if path and path ~= "" then
+            info.path = path
+        end
+        local left, right, top, bottom = statusTex:GetTexCoord()
+        if left and right and top and bottom then
+            info.left, info.right, info.top, info.bottom = left, right, top, bottom
+        end
+        if statusTex.GetHorizTile then
+            info.horizTile = statusTex:GetHorizTile() and true or false
+        end
+        if statusTex.GetVertTile then
+            info.vertTile = statusTex:GetVertTile() and true or false
+        end
+    end
+
+    return info
+end
+
 local function GetPowerTexture(powerToken)
     if UsesDragonBarTexture() then
         return GetDragonPowerTexture(powerToken)
@@ -425,14 +463,6 @@ end
 -- HEAL PREDICTION
 -- ============================================================================
 
-local function IsHealPredictionEnabled()
-    local cfg = GetModuleConfig()
-    if not cfg or cfg.heal_prediction ~= true then
-        return false
-    end
-    return addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers")
-end
-
 local function GetLayersHost()
     local frames = PlayerResourceModule.frames
     local container = frames.container
@@ -444,7 +474,25 @@ local function GetLayersHost()
     return container
 end
 
+local function IsHealPredictionEnabled()
+    -- PRD heal prediction disabled for now (texture/color work in progress).
+    return false
+    --[[
+    local cfg = GetModuleConfig()
+    if not cfg or cfg.heal_prediction ~= true then
+        return false
+    end
+    return addon.IsModuleEnabled and addon:IsModuleEnabled("unitframe_layers")
+    ]]
+end
+
 local function SyncHealPrediction()
+    -- PRD heal prediction disabled for now.
+    local host = GetLayersHost()
+    if host and addon.UFL_DetachHealPrediction then
+        addon.UFL_DetachHealPrediction(host)
+    end
+    --[[
     local host = GetLayersHost()
     if not host then return end
 
@@ -461,15 +509,19 @@ local function SyncHealPrediction()
     elseif addon.UFL_DetachHealPrediction then
         addon.UFL_DetachHealPrediction(host)
     end
+    ]]
 end
 
 local function UpdateHealPrediction()
+    -- PRD heal prediction disabled for now.
+    --[[
     if not IsHealPredictionEnabled() then return end
     local host = GetLayersHost()
     if host and addon.UFL_UpdateHealPrediction then
         addon.UFL_UpdateHealPrediction(host)
     end
     RaiseBarTextFrame(PlayerResourceModule.frames.health)
+    ]]
 end
 
 -- ============================================================================

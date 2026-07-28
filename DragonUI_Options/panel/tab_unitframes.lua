@@ -943,36 +943,60 @@ local function BuildBuffTrackerSection(scroll)
         disabled = function() return not IsBuffTrackerEnabled() end,
     })
 
-    C:AddHeading(buffTrackerSection, LO["Consumables"])
+    C:AddHeading(buffTrackerSection, LO["Low-Time Buffs"])
+
+    C:AddDescription(buffTrackerSection, LO["Applies to shouts, blessings, flasks, food, and other watchlist entries marked as low-time."])
 
     C:AddDropdown(buffTrackerSection, {
-        label = LO["Consumable Show Mode"],
-        desc = LO["When to show flask, elixir, and feast icons."],
+        label = LO["Low-Time Show Mode"],
+        desc = LO["When to show low-time tracked buff and consumable icons."],
         values = {
-            threshold = LO["Below threshold only"] or "Below threshold only",
+            low_time = LO["Below percent only"] or "Below percent only",
             always = LO["Always while active"] or "Always while active",
             never = LO["Never"] or "Never",
         },
-        getFunc = function() return GetModuleField("bufftracker", "consumable_show_mode") or "threshold" end,
-        setFunc = function(val) EnsureModuleTable("bufftracker").consumable_show_mode = val end,
+        getFunc = function() return GetModuleField("bufftracker", "buff_low_time_show_mode") or "low_time" end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").buff_low_time_show_mode = val end,
         callback = RefreshBuffTracker,
         disabled = function() return not IsBuffTrackerEnabled() end,
         width = 260,
     })
 
     C:AddSlider(buffTrackerSection, {
-        label = LO["Consumable Threshold (sec)"],
-        desc = LO["Show consumable icons when remaining time is at or below this value. Default 300 = 5 minutes."],
-        min = 30, max = 900, step = 30,
-        getFunc = function() return GetModuleField("bufftracker", "consumable_threshold_sec") or 300 end,
-        setFunc = function(val) EnsureModuleTable("bufftracker").consumable_threshold_sec = val end,
+        label = LO["Low-Time Percent"],
+        desc = LO["Show icons when remaining duration is at or below this percentage of the buff total. Default 10% = last tenth of the timer."],
+        min = 5, max = 50, step = 1,
+        getFunc = function()
+            return math.floor(((GetModuleField("bufftracker", "buff_low_time_percent") or 0.10) * 100) + 0.5)
+        end,
+        setFunc = function(val)
+            EnsureModuleTable("bufftracker").buff_low_time_percent = val / 100
+        end,
         callback = RefreshBuffTracker,
         disabled = function()
             return not IsBuffTrackerEnabled()
-                or (GetModuleField("bufftracker", "consumable_show_mode") or "threshold") ~= "threshold"
+                or (GetModuleField("bufftracker", "buff_low_time_show_mode") or "low_time") ~= "low_time"
         end,
         width = 200,
     })
+
+    C:AddSlider(buffTrackerSection, {
+        label = LO["Low-Time Fallback (sec)"],
+        desc = LO["When total duration is unknown, show icons below this many seconds remaining. Default 300 = 5 minutes."],
+        min = 30, max = 900, step = 30,
+        getFunc = function() return GetModuleField("bufftracker", "buff_low_time_threshold_sec") or 300 end,
+        setFunc = function(val) EnsureModuleTable("bufftracker").buff_low_time_threshold_sec = val end,
+        callback = RefreshBuffTracker,
+        disabled = function()
+            return not IsBuffTrackerEnabled()
+                or (GetModuleField("bufftracker", "buff_low_time_show_mode") or "low_time") ~= "low_time"
+        end,
+        width = 200,
+    })
+
+    C:AddHeading(buffTrackerSection, LO["Consumables"])
+
+    C:AddDescription(buffTrackerSection, LO["Flasks, elixirs, and food use the Low-Time Buffs settings above."])
 
     C:AddToggle(buffTrackerSection, {
         label = LO["Expired Consumable Glow"],
@@ -1169,6 +1193,8 @@ local function BuildPersonalResourceSection(scroll)
         order = { "blizzard", "dragonui", "blizzard_flat", "smooth", "aluminium", "litestep" },
         callback = refresh,
     })
+    -- PRD heal prediction disabled for now.
+    --[[
     C:AddToggle(size, {
         label = LO["Heal Prediction"],
         desc = LO["Show incoming heal prediction on the personal resource health bar. Requires Unit Frame Layers to be enabled."],
@@ -1196,6 +1222,7 @@ local function BuildPersonalResourceSection(scroll)
             end
         end,
     })
+    ]]
 
     local text = C:AddSection(scroll, LO["Text"])
     C:AddToggle(text, {

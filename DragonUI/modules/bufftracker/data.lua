@@ -249,6 +249,7 @@ function BT.BuildWatchEntries(cfg)
 		local borderMode = normalized.borderMode or BT.GetCategoryBorderMode(cfg, categoryKey, classToken)
 		entries[#entries + 1] = {
 			spellID = spellID,
+			primarySpellID = normalized.spellID,
 			tooltipID = normalized.tooltipID or spellID,
 			category = categoryKey,
 			classToken = classToken,
@@ -366,6 +367,16 @@ function BT.ResolveSpellIdByName(name)
 	return nil
 end
 
+function BT.GetWatchDisplayKey(watch, watchSpellID, rawSpellID, aura)
+	if aura and aura.icdOnly then
+		return tostring(aura.spellID or rawSpellID)
+	end
+	if watch and watch.primarySpellID then
+		return tostring(watch.primarySpellID)
+	end
+	return tostring(watchSpellID or rawSpellID)
+end
+
 function BT.FindWatchForAura(watchMap, name, spellID)
 	if not watchMap then
 		return nil, nil
@@ -435,28 +446,70 @@ function BT.DefaultCategoriesTable()
 	}
 end
 
-function BT.ShouldShowLowTimeBuff(cfg, watch, aura)
+function BT.GetLowTimeShowMode(cfg)
+	local mode = cfg and cfg.buff_low_time_show_mode
+	if mode == "always" or mode == "never" or mode == "low_time" then
+		return mode
+	end
+	return "low_time"
+end
+
+function BT.ShouldShowLowTimeBuff(cfg, watch, aura, displayKey, state)
 	if not watch or not watch.showLowTime then
 		return true
 	end
 	if not aura or not aura.expiration or aura.expiration <= 0 then
 		return false
 	end
+
+	local tick = GetTime()
 	local remain = aura.remain
 	if remain == nil or remain <= 0 then
-		remain = aura.expiration - GetTime()
+		remain = aura.expiration - tick
 	end
 	if remain <= 0 then
 		return false
 	end
+
 	local threshold = (cfg and cfg.buff_low_time_threshold_sec) or 300
+	local pct = (cfg and cfg.buff_low_time_percent) or 0.10
+	local total = aura.duration
+
+	if displayKey and state then
+		state.lowTimeSession = state.lowTimeSession or {}
+		local session = state.lowTimeSession[displayKey]
+		if not session then
+			session = {}
+			state.lowTimeSession[displayKey] = session
+		end
+
+		local lastRemain = session.lastRemain
+		local lastExpiration = session.lastExpiration
+		-- Detect rebuff/refresh: remaining time or expiration jumped up.
+		if (lastRemain and remain > lastRemain + 5)
+			or (lastExpiration and aura.expiration > lastExpiration + 5) then
+			session.peak = remain
+		elseif not session.peak or remain > session.peak then
+			session.peak = remain
+		end
+
+		session.lastRemain = remain
+		session.lastExpiration = aura.expiration
+
+		if (not total or total <= 0) and session.peak then
+			total = session.peak
+		elseif session.peak and session.peak > total then
+			total = session.peak
+		end
+	end
+
+	-- Prefer % of total duration when known (e.g. last 10% of a 10m shout).
+	-- Absolute threshold is only a fallback when total duration is unknown.
+	if total and total > 0 then
+		return remain <= (total * pct)
+	end
 	if remain <= threshold then
 		return true
-	end
-	local total = aura.duration
-	if total and total > 0 then
-		local pct = (cfg and cfg.buff_low_time_percent) or 0.10
-		return remain <= (total * pct)
 	end
 	return false
 end

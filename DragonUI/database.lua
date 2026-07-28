@@ -1073,6 +1073,7 @@ local defaults = {
                 consumable_show_mode = "threshold",
                 consumable_threshold_sec = 300,
                 consumable_expired_glow = true,
+                buff_low_time_show_mode = "low_time", -- low_time | always | never
                 buff_low_time_threshold_sec = 300,
                 buff_low_time_percent = 0.10,
                 consumable_glow_scale = 1.2,

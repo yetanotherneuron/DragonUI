@@ -231,12 +231,11 @@ function BT.LayoutIcons(entries)
 
 	for key, icon in pairs(state.iconsByKey) do
 		if not usedKeys[key] then
-			if icon.duiExpiredGlow and icon.duiExpiredGlow:IsShown() then
-				-- Keep the slot alive while the expired consumable glow finishes.
-			else
-				BT.ReleaseIcon(icon)
-				state.iconsByKey[key] = nil
+			if BT.StopExpiredGlow then
+				BT.StopExpiredGlow(icon)
 			end
+			BT.ReleaseIcon(icon)
+			state.iconsByKey[key] = nil
 		end
 	end
 

@@ -89,6 +89,7 @@ BT.WATCH_LISTS = {
 		passives = {
 			WARRIOR = {
 				{ id = 46916, border = "procs" }, -- Blood Surge
+				{ id = 12970, border = "procs", duration = true, ranks = { 12966, 12967, 12968, 12969 } }, -- Flurry
 				{ id = 52437, border = "procs" }, -- Sudden Death
 				{ id = 50227, border = "procs" }, -- Sword and Board
 				{ id = 60503, border = "procs" }, -- Taste for Blood

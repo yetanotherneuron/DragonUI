@@ -11,6 +11,7 @@ BT.engineState = BT.engineState or {
 	firstSeen = {},
 	wasConsumableActive = {},
 	lastTexture = {},
+	lowTimeSession = {},
 	scanElapsed = 0,
 }
 
@@ -181,6 +182,13 @@ local function ResolveShowFlags(cfg, watch, aura)
 	return showDuration, showStacks
 end
 
+local function StopIconExpiredGlow(displayKey)
+	local icon = BT.layoutState and BT.layoutState.iconsByKey and BT.layoutState.iconsByKey[displayKey]
+	if icon and BT.StopExpiredGlow then
+		BT.StopExpiredGlow(icon)
+	end
+end
+
 local function ResolveGlowOptions(cfg, watch)
 	if not cfg or cfg.icon_glow_enabled ~= true or not watch or watch.glow ~= true then
 		return false, nil
@@ -216,7 +224,7 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 		local watchSpellID, watch = BT.FindWatchForAura(watchMap, aura.name, rawSpellID)
 		if watch and BT.ShouldDisplayWatch(cfg, watch) then
 			local spellID = watchSpellID or rawSpellID
-			local displayKey = aura.icdOnly and tostring(auraKey) or tostring(spellID)
+			local displayKey = BT.GetWatchDisplayKey(watch, watchSpellID, rawSpellID, aura)
 			resolvedActive[displayKey] = true
 			if not state.firstSeen[displayKey] then
 				state.firstSeen[displayKey] = tick
@@ -225,11 +233,17 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 
 			local visible = true
 			if (watch.category == "buffs" or watch.category == "consume") and watch.showLowTime then
-				if aura.expiration and aura.expiration > 0 then
-					aura.remain = aura.expiration - tick
-					visible = BT.ShouldShowLowTimeBuff(cfg, watch, aura)
+				local mode = BT.GetLowTimeShowMode(cfg)
+				if mode == "never" then
+					visible = false
+				elseif mode == "always" then
+					visible = true
 				else
 					visible = false
+					if aura.expiration and aura.expiration > 0 then
+						aura.remain = aura.expiration - tick
+						visible = BT.ShouldShowLowTimeBuff(cfg, watch, aura, displayKey, state)
+					end
 				end
 			elseif watch.category == "consume" then
 				if aura.expiration > 0 then
@@ -237,6 +251,10 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 				else
 					visible = (cfg.consumable_show_mode or "threshold") == "always"
 				end
+			end
+
+			if not visible then
+				StopIconExpiredGlow(displayKey)
 			end
 
 			if visible then
@@ -266,11 +284,11 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 		end
 	end
 
-	for spellID, wasActive in pairs(state.wasConsumableActive) do
-		if wasActive and not activeAuras[spellID] then
-			local watch = watchMap[spellID]
+	for displayKey, wasActive in pairs(state.wasConsumableActive) do
+		if wasActive and not resolvedActive[displayKey] then
+			local watch = watchMap[tonumber(displayKey)]
 			if watch and watch.category == "consume" and cfg.consumable_expired_glow ~= false then
-				local icon = BT.layoutState.iconsByKey[tostring(spellID)]
+				local icon = BT.layoutState.iconsByKey[displayKey]
 				if icon then
 					BT.PlayExpiredGlow(icon, cfg.consumable_glow_scale or 1.2, 1.0, 3)
 				end
@@ -279,13 +297,20 @@ function BT.BuildDisplayEntries(cfg, activeAuras, previewEntries, watchMap)
 	end
 
 	local nextConsumable = {}
-	for spellID in pairs(activeAuras) do
-		local watch = watchMap[spellID]
+	for auraKey, aura in pairs(activeAuras) do
+		local rawSpellID = aura.spellID or auraKey
+		local watchSpellID, watch = BT.FindWatchForAura(watchMap, aura.name, rawSpellID)
 		if watch and watch.category == "consume" then
-			nextConsumable[spellID] = true
+			nextConsumable[BT.GetWatchDisplayKey(watch, watchSpellID, rawSpellID, aura)] = true
 		end
 	end
 	state.wasConsumableActive = nextConsumable
+
+	for displayKey, _ in pairs(state.lowTimeSession or {}) do
+		if not resolvedActive[displayKey] then
+			state.lowTimeSession[displayKey] = nil
+		end
+	end
 
 	for spellID in pairs(state.firstSeen) do
 		if not resolvedActive[spellID] then

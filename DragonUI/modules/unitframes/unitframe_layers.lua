@@ -597,6 +597,15 @@ end
 -- Prediction overlays use the standard fill texture on unit frames so vertex
 -- tints stay correct with smooth/aluminium/litestep. PRD copies its health bar texture.
 local HEAL_PREDICTION_TEXTURE = "Interface\\TargetingFrame\\UI-StatusBar"
+local SHIELD_FILL_TEXTURE = "Interface\\AddOns\\DragonUI\\Textures\\UnitFrameLayers\\Shield-Fill"
+
+local MY_HEAL_COLOR = { 0.45, 1.00, 1.00, 1.0 }
+local OTHER_HEAL_COLOR = { 0.50, 1.00, 0.60, 1.0 }
+-- ADD blend on PRD keeps prediction readable on colored bar textures.
+local MY_HEAL_ADD_COLOR = { 0.20, 1.00, 0.95, 0.78 }
+local OTHER_HEAL_ADD_COLOR = { 0.25, 1.00, 0.70, 0.78 }
+local ABSORB_COLOR = { 0.95, 0.98, 1.00, 1.0 }
+local ABSORB_OVERLAY_COLOR = { 1.00, 1.00, 1.00, 1.0 }
 
 local function IsPlayerResourceLayersHost(frame)
 	if not frame then return false end
@@ -607,20 +616,95 @@ local function IsPlayerResourceLayersHost(frame)
 	return healthbar and healthbar.GetName and healthbar:GetName() == "DragonUI_PlayerResourceHealth"
 end
 
-local function GetHealPredictionBarTexture(frame)
-	if IsPlayerResourceLayersHost(frame) then
-		local visual = UFL_VisualHealthBar(frame)
-		if visual then
-			local statusTex = visual:GetStatusBarTexture()
-			if statusTex then
-				local path = statusTex:GetTexture()
-				if path and path ~= "" then
-					return path
-				end
-			end
+local function ApplyTextureVisual(tex, visual)
+	if not (tex and visual and visual.path) then
+		return
+	end
+	tex:SetTexture(visual.path)
+	tex:SetTexCoord(visual.left or 0, visual.right or 1, visual.top or 0, visual.bottom or 1)
+	if tex.SetHorizTile then
+		tex:SetHorizTile(visual.horizTile ~= false)
+	end
+	if tex.SetVertTile then
+		tex:SetVertTile(visual.vertTile == true)
+	end
+end
+
+local function ApplyStandardPredictionTexture(tex)
+	if not tex then
+		return
+	end
+	tex:SetTexture(HEAL_PREDICTION_TEXTURE)
+	tex:SetTexCoord(0, 1, 0, 1)
+	if tex.SetHorizTile then
+		tex:SetHorizTile(true)
+	end
+	if tex.SetVertTile then
+		tex:SetVertTile(false)
+	end
+end
+
+local function GetPRDTextureVisual(frame)
+	local mod = addon.PlayerResourceModule
+	if mod and mod.GetHealthBarTextureVisual then
+		return mod.GetHealthBarTextureVisual()
+	end
+
+	local visual = UFL_VisualHealthBar(frame)
+	if not visual then
+		return nil
+	end
+
+	local info = {
+		setting = "blizzard",
+		path = HEAL_PREDICTION_TEXTURE,
+		left = 0,
+		right = 1,
+		top = 0,
+		bottom = 1,
+		horizTile = true,
+		vertTile = false,
+	}
+
+	local statusTex = visual:GetStatusBarTexture()
+	if statusTex then
+		local path = statusTex:GetTexture()
+		if path and path ~= "" then
+			info.path = path
+		end
+		local left, right, top, bottom = statusTex:GetTexCoord()
+		if left and right and top and bottom then
+			info.left, info.right, info.top, info.bottom = left, right, top, bottom
+		end
+		if statusTex.GetHorizTile then
+			info.horizTile = statusTex:GetHorizTile() and true or false
+		end
+		if statusTex.GetVertTile then
+			info.vertTile = statusTex:GetVertTile() and true or false
 		end
 	end
-	return HEAL_PREDICTION_TEXTURE
+
+	return info
+end
+
+local function StylePredictionFillTexture(tex, frame, visual, useAddBlend)
+	if not tex then
+		return
+	end
+
+	if IsPlayerResourceLayersHost(frame) and visual then
+		ApplyTextureVisual(tex, visual)
+	else
+		ApplyStandardPredictionTexture(tex)
+	end
+
+	if tex.SetBlendMode then
+		if useAddBlend then
+			tex:SetBlendMode("ADD")
+		else
+			tex:SetBlendMode("BLEND")
+		end
+	end
 end
 
 local function StyleLiteHealOverlays(frame)
@@ -633,29 +717,45 @@ local function StyleLiteHealOverlays(frame)
 	local absorbOverlay = frame.totalAbsorbBarOverlay
 	local overAbsorb = frame.overAbsorbGlow
 
-	local barTex = GetHealPredictionBarTexture(frame)
+	local isPRD = IsPlayerResourceLayersHost(frame)
+	local visual = isPRD and GetPRDTextureVisual(frame) or nil
+	local useAddBlend = isPRD
 
 	if my then
 		local templateFrame = my:GetParent()
 		if templateFrame and healthBar and templateFrame.SetFrameLevel then
 			templateFrame:SetFrameLevel((healthBar:GetFrameLevel() or 0) + 8)
 		end
-		my:SetTexture(barTex)
-		my:SetVertexColor(0.20, 1.00, 1.00, 1) -- bright cyan (my heal)
+		StylePredictionFillTexture(my, frame, visual, useAddBlend)
+		if useAddBlend then
+			my:SetVertexColor(MY_HEAL_ADD_COLOR[1], MY_HEAL_ADD_COLOR[2], MY_HEAL_ADD_COLOR[3], MY_HEAL_ADD_COLOR[4])
+		else
+			my:SetVertexColor(MY_HEAL_COLOR[1], MY_HEAL_COLOR[2], MY_HEAL_COLOR[3], MY_HEAL_COLOR[4])
+		end
 		my:SetDrawLayer("OVERLAY", 1)
 	end
 	if other then
-		other:SetTexture(barTex)
-		other:SetVertexColor(0.35, 1.00, 0.45, 1) -- bright lime (other heal)
+		StylePredictionFillTexture(other, frame, visual, useAddBlend)
+		if useAddBlend then
+			other:SetVertexColor(OTHER_HEAL_ADD_COLOR[1], OTHER_HEAL_ADD_COLOR[2], OTHER_HEAL_ADD_COLOR[3], OTHER_HEAL_ADD_COLOR[4])
+		else
+			other:SetVertexColor(OTHER_HEAL_COLOR[1], OTHER_HEAL_COLOR[2], OTHER_HEAL_COLOR[3], OTHER_HEAL_COLOR[4])
+		end
 		other:SetDrawLayer("OVERLAY", 2)
 	end
 	if absorb then
-		absorb:SetTexture(barTex)
-		absorb:SetVertexColor(0.85, 0.90, 1.00, 0.95) -- bright ice-white shield
+		absorb:SetTexture(SHIELD_FILL_TEXTURE)
+		if absorb.SetHorizTile then
+			absorb:SetHorizTile(true)
+		end
+		if absorb.SetBlendMode then
+			absorb:SetBlendMode("BLEND")
+		end
+		absorb:SetVertexColor(ABSORB_COLOR[1], ABSORB_COLOR[2], ABSORB_COLOR[3], ABSORB_COLOR[4])
 		absorb:SetDrawLayer("OVERLAY", 3)
 	end
 	if absorbOverlay then
-		absorbOverlay:SetVertexColor(1, 1, 1, 0.85)
+		absorbOverlay:SetVertexColor(ABSORB_OVERLAY_COLOR[1], ABSORB_OVERLAY_COLOR[2], ABSORB_OVERLAY_COLOR[3], ABSORB_OVERLAY_COLOR[4])
 		absorbOverlay:SetDrawLayer("OVERLAY", 4)
 	end
 	if overAbsorb then

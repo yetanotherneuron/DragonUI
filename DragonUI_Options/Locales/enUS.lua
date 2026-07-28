@@ -441,6 +441,16 @@ L["Spells (red)"] = true
 L["Buffs / Enchants (purple)"] = true
 L["Procs (pink-red)"] = true
 L["Stacks (gray)"] = true
+L["Low-Time Buffs"] = true
+L["Applies to shouts, blessings, flasks, food, and other watchlist entries marked as low-time."] = true
+L["Low-Time Show Mode"] = true
+L["When to show low-time tracked buff and consumable icons."] = true
+L["Below percent only"] = true
+L["Low-Time Percent"] = true
+L["Show icons when remaining duration is at or below this percentage of the buff total. Default 10% = last tenth of the timer."] = true
+L["Low-Time Fallback (sec)"] = true
+L["When total duration is unknown, show icons below this many seconds remaining. Default 300 = 5 minutes."] = true
+L["Flasks, elixirs, and food use the Low-Time Buffs settings above."] = true
 L["Consumable Show Mode"] = true
 L["When to show flask, elixir, and feast icons."] = true
 L["Below threshold only"] = true
