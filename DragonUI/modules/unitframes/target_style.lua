@@ -10,6 +10,22 @@ local UF = addon.UF
 
 UF.TargetStyle = {}
 
+-- 3.3.5a has no UNIT_POWER/UNIT_MAXPOWER; power changes fire one event per power token.
+local POWER_EVENTS = {
+    UNIT_MANA = true,
+    UNIT_RAGE = true,
+    UNIT_FOCUS = true,
+    UNIT_ENERGY = true,
+    UNIT_HAPPINESS = true,
+    UNIT_RUNIC_POWER = true,
+    UNIT_MAXMANA = true,
+    UNIT_MAXRAGE = true,
+    UNIT_MAXFOCUS = true,
+    UNIT_MAXENERGY = true,
+    UNIT_MAXHAPPINESS = true,
+    UNIT_MAXRUNIC_POWER = true,
+}
+
 -- ============================================================================
 -- FACTORY
 -- ============================================================================
@@ -53,7 +69,7 @@ function UF.TargetStyle.Create(opts)
 
     -- Name background color variants sourced from UIUnitFrame2x_PTR.blp.
     -- Coords extracted from the local PTR atlas (1024x512) and mapped by color.
-    local NAME_BG_PTR_TEXTURE = "Interface\\AddOns\\DragonUI\\Textures\\UIUnitFrame2x_PTR"
+    local NAME_BG_PTR_TEXTURE = "Interface\\AddOns\\DragonUI\\Textures\\UnitFrames\\Target\\UIUnitFrame2x_PTR"
     local NAME_BG_WIDTH = 135
     local NAME_BG_HEIGHT = 14
     local NAME_BG_OFFSET_X = -0.5
@@ -1253,8 +1269,7 @@ function UF.TargetStyle.Create(opts)
                 Module.textSystem.update()
             end
 
-        elseif event == "UNIT_POWER_UPDATE"
-            or event == "UNIT_MAXPOWER" then
+        elseif POWER_EVENTS[event] then
             local unit = ...
             if unit == unitToken and UnitExists(unitToken) then
                 ForceUpdatePowerBar()
@@ -1285,8 +1300,9 @@ function UF.TargetStyle.Create(opts)
         ef:RegisterEvent("UNIT_FACTION")
         ef:RegisterEvent("UNIT_HEALTH")
         ef:RegisterEvent("UNIT_MAXHEALTH")
-        ef:RegisterEvent("UNIT_POWER_UPDATE")
-        ef:RegisterEvent("UNIT_MAXPOWER")
+        for ev in pairs(POWER_EVENTS) do
+            ef:RegisterEvent(ev)
+        end
         ef:RegisterEvent("UNIT_DISPLAYPOWER")
 
         -- Register additional per-module events

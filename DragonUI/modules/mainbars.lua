@@ -574,89 +574,6 @@ local function InitializeMainbars()
     end
 
     -- ============================================================================
-    -- RESTORE ORIGINAL STATE (When disabled)
-    -- ============================================================================
-
-    local function RestoreMainbarsSystem()
-        if not MainbarsModule.applied then
-            return
-        end
-
-        for _, driver in pairs(MainbarsModule.stateDrivers) do
-            if driver and driver.frame and driver.state then
-                pcall(UnregisterStateDriver, driver.frame, driver.state)
-            end
-        end
-        MainbarsModule.stateDrivers = {}
-        MainbarsModule.pageDriverInstalled = false
-        MainbarsModule.pageDriverFrame = nil
-
-        -- Hide DragonUI frames
-        if MainbarsModule.frames.pUiMainBar then
-            MainbarsModule.frames.pUiMainBar:Hide()
-            MainbarsModule.frames.pUiMainBar = nil
-        end
-        if MainbarsModule.frames.pUiMainBarArt then
-            MainbarsModule.frames.pUiMainBarArt:Hide()
-            MainbarsModule.frames.pUiMainBarArt = nil
-        end
-
-        -- Clear ActionBarFrames
-        if MainbarsModule.actionBarFrames then
-            for name, frame in pairs(MainbarsModule.actionBarFrames) do
-                if frame and frame.Hide then
-                    frame:Hide()
-                end
-            end
-            MainbarsModule.actionBarFrames = nil
-            addon.ActionBarFrames = nil
-        end
-
-        -- Restore original states
-        for frameName, state in pairs(MainbarsModule.originalStates) do
-            local frame = _G[frameName]
-            if frame and state then
-                frame:SetParent(state.parent or UIParent)
-                frame:SetScale(state.scale or 1.0)
-                frame:ClearAllPoints()
-                if state.points and #state.points > 0 then
-                    for _, pointData in pairs(state.points) do
-                        frame:SetPoint(pointData[1], pointData[2], pointData[3], pointData[4], pointData[5])
-                    end
-                else
-                    -- Default positioning for action bars
-                    if frameName == "MainMenuBar" then
-                        frame:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 0)
-                    elseif frameName == "MultiBarRight" then
-                        frame:SetPoint("RIGHT", UIParent, "RIGHT", -6, 0)
-                    elseif frameName == "MultiBarLeft" then
-                        frame:SetPoint("RIGHT", MultiBarRight, "LEFT", -6, 0)
-                    elseif frameName == "MultiBarBottomLeft" then
-                        frame:SetPoint("BOTTOMLEFT", ActionButton1, "TOPLEFT", 0, 6)
-                    elseif frameName == "MultiBarBottomRight" then
-                        frame:SetPoint("BOTTOMLEFT", MultiBarBottomLeftButton1, "TOPLEFT", 0, 6)
-                    end
-                end
-                frame:EnableMouse(state.mouseEnabled ~= false)
-                frame:SetMovable(state.movable ~= false)
-                frame:SetUserPlaced(state.userPlaced == true)
-            end
-        end
-
-        -- Show action bars
-        local bars = {MainMenuBar, MultiBarRight, MultiBarLeft, MultiBarBottomLeft, MultiBarBottomRight}
-        for _, bar in pairs(bars) do
-            if bar then
-                bar:Show()
-            end
-        end
-
-        MainbarsModule.originalStates = {}
-        MainbarsModule.applied = false
-
-    end
-
-    -- ============================================================================
     -- CORE MAINBAR FUNCTIONS
     -- ============================================================================
 
@@ -1139,7 +1056,7 @@ end
         -- Background layer
         f.Background = f:CreateTexture(nil, "BACKGROUND")
         f.Background:SetAllPoints()
-        f.Background:SetTexture(addon._dir .. "xp\\Background")
+        f.Background:SetTexture(addon._dir .. "XP\\Background")
         f.Background:SetTexCoord(0, 0.55517578, 0, 1)
 
         -- Rested XP background bar (shows the TOTAL rested range behind main fill)
@@ -1147,7 +1064,7 @@ end
         f.RestedBar:SetPoint("TOPLEFT", 0, 0)
         f.RestedBar:SetPoint("BOTTOMRIGHT", 0, 0)
         f.RestedBar.Texture = f.RestedBar:CreateTexture(nil, "ARTWORK")
-        f.RestedBar.Texture:SetTexture(addon._dir .. "xp\\RestedBackground")
+        f.RestedBar.Texture:SetTexture(addon._dir .. "XP\\RestedBackground")
         f.RestedBar.Texture:SetAllPoints()
         f.RestedBar.Texture:SetDrawLayer("ARTWORK", 0)
         f.RestedBar:SetStatusBarTexture(f.RestedBar.Texture)
@@ -1159,7 +1076,7 @@ end
         f.RestedBarMark = CreateFrame("Frame", nil, f)
         f.RestedBarMark:SetSize(markSizeX, markSizeY)
         f.RestedBarMark.Texture = f.RestedBarMark:CreateTexture(nil, "OVERLAY")
-        f.RestedBarMark.Texture:SetTexture(addon._dir .. "uiexperiencebar")
+        f.RestedBarMark.Texture:SetTexture(addon._dir .. "XP\\uiexperiencebar")
         f.RestedBarMark.Texture:SetTexCoord(1170 / 2048, 1192 / 2048, 201 / 256, 231 / 256)
         f.RestedBarMark.Texture:SetAllPoints()
 
@@ -1168,7 +1085,7 @@ end
         f.Bar:SetPoint("TOPLEFT", 0, 0)
         f.Bar:SetPoint("BOTTOMRIGHT", 0, 0)
         f.Bar.Texture = f.Bar:CreateTexture(nil, "ARTWORK")
-        f.Bar.Texture:SetTexture(addon._dir .. "xp\\Main")
+        f.Bar.Texture:SetTexture(addon._dir .. "XP\\Main")
         f.Bar.Texture:SetAllPoints()
         f.Bar:SetStatusBarTexture(f.Bar.Texture)
         f.Bar.Texture:SetDrawLayer("ARTWORK", 1)
@@ -1177,7 +1094,7 @@ end
 
         -- Border overlay
         f.Border = f.Bar:CreateTexture(nil, "OVERLAY")
-        f.Border:SetTexture(addon._dir .. "xp\\Overlay")
+        f.Border:SetTexture(addon._dir .. "XP\\Overlay")
         f.Border:SetTexCoord(0, 0.55517578, 0, 1)
         f.Border:SetPoint("TOPLEFT", 0, 1)
         f.Border:SetPoint("BOTTOMRIGHT", 0, -1)
@@ -1241,7 +1158,7 @@ end
         -- Background
         f.Background = f:CreateTexture(nil, "BACKGROUND")
         f.Background:SetAllPoints()
-        f.Background:SetTexture(addon._dir .. "xp\\Background")
+        f.Background:SetTexture(addon._dir .. "XP\\Background")
         f.Background:SetTexCoord(0, 0.55517578, 0, 1)
 
         -- Main rep progress bar
@@ -1249,14 +1166,14 @@ end
         f.Bar:SetPoint("TOPLEFT", 0, 0)
         f.Bar:SetPoint("BOTTOMRIGHT", 0, 0)
         f.Bar.Texture = f.Bar:CreateTexture(nil, "ARTWORK")
-        f.Bar.Texture:SetTexture(addon._dir .. "reputation\\Rep")
+        f.Bar.Texture:SetTexture(addon._dir .. "Reputation\\Rep")
         f.Bar.Texture:SetAllPoints()
         f.Bar:SetStatusBarTexture(f.Bar.Texture)
         f.Bar:EnableMouse(true)
 
         -- Border overlay
         f.Border = f.Bar:CreateTexture(nil, "OVERLAY")
-        f.Border:SetTexture(addon._dir .. "xp\\Overlay")
+        f.Border:SetTexture(addon._dir .. "XP\\Overlay")
         f.Border:SetTexCoord(0, 0.55517578, 0, 1)
         f.Border:SetPoint("TOPLEFT", 0, 1)
         f.Border:SetPoint("BOTTOMRIGHT", 0, -1)
@@ -1309,7 +1226,8 @@ end
         local isFullyRested = exhaustionThreshold and exhaustionThreshold >= remainingXP
 
         if showTick and exhaustionThreshold and exhaustionThreshold > 0 and not isFullyRested then
-            local barW = cfg.bar_width or 466
+            local barW = dfXpBar:GetWidth()
+            if not barW or barW == 0 then barW = cfg.bar_width or 466 end
             ExhaustionTick:SetParent(dfXpBar)
             ExhaustionTick:SetFrameStrata("HIGH")
             ExhaustionTick:SetFrameLevel(20)
@@ -1369,9 +1287,9 @@ end
 
         -- Set main bar texture based on rested state
         if exhaustionStateID == 1 then
-            dfXpBar.Bar.Texture:SetTexture(addon._dir .. "xp\\Rested")
+            dfXpBar.Bar.Texture:SetTexture(addon._dir .. "XP\\Rested")
         else
-            dfXpBar.Bar.Texture:SetTexture(addon._dir .. "xp\\Main")
+            dfXpBar.Bar.Texture:SetTexture(addon._dir .. "XP\\Main")
         end
         dfXpBar.Bar:SetMinMaxValues(0, maxXP)
         dfXpBar.Bar:SetValue(currXP)
@@ -1388,10 +1306,12 @@ end
                 dfXpBar.RestedBar:SetValue(currXP + restedXP)
                 local showMark = cfg.show_rested_mark ~= false
                 if showMark then
+                    local bw = dfXpBar:GetWidth()
+                    if not bw or bw == 0 then bw = sizeX end
                     dfXpBar.RestedBarMark:Show()
                     dfXpBar.RestedBarMark:ClearAllPoints()
                     dfXpBar.RestedBarMark:SetPoint("LEFT", dfXpBar, "LEFT",
-                        (currXP + restedXP) / maxXP * sizeX - markSizeX / 2, 0)
+                        (currXP + restedXP) / maxXP * bw - markSizeX / 2, 0)
                 else
                     dfXpBar.RestedBarMark:Hide()
                 end
@@ -1450,13 +1370,13 @@ end
 
         -- Standing-based texture color
         if standing == 1 or standing == 2 then
-            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "reputation\\RepRed")
+            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "Reputation\\RepRed")
         elseif standing == 3 then
-            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "reputation\\RepOrange")
+            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "Reputation\\RepOrange")
         elseif standing == 4 then
-            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "reputation\\RepYellow")
+            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "Reputation\\RepYellow")
         else
-            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "reputation\\RepGreen")
+            dfRepBar.Bar.Texture:SetTexture(addon._dir .. "Reputation\\RepGreen")
         end
 
         dfRepBar.Bar:SetMinMaxValues(0, maxRep - minRep)
@@ -1485,7 +1405,7 @@ end
         local cfg = GetXpRepConfig() or {}
         local barW = cfg.bar_width or 466
         local barH = GetXpBarHeight("retailui")
-        local ExperienceBarAsset = addon._dir .. "uiexperiencebar"
+        local ExperienceBarAsset = addon._dir .. "XP\\uiexperiencebar"
 
         -- === XP BAR ===
         -- NOTE: Do NOT ClearAllPoints here — positioning is handled by
@@ -1533,13 +1453,12 @@ end
             -- Reference: SetAllPoints first, then override with offset anchors, then set_atlas
             local borderTex = MainMenuXPBarTexture0
             if borderTex then
-                borderTex:SetAllPoints(MainMenuExpBar)
+                borderTex:ClearAllPoints()
                 borderTex:SetPoint("TOPLEFT", MainMenuExpBar, "TOPLEFT", -3, 3)
                 borderTex:SetPoint("BOTTOMRIGHT", MainMenuExpBar, "BOTTOMRIGHT", 3, -6)
                 borderTex:SetDrawLayer("OVERLAY", 1)
                 borderTex:SetTexture(ExperienceBarAsset)
                 borderTex:SetTexCoord(1 / 2048, 572 / 2048, 1 / 64, 18 / 64)
-                borderTex:SetSize(571, 17)
                 borderTex:Show()
             end
 
@@ -1676,26 +1595,23 @@ end
             -- Border: ReputationXPBarTexture0 (noop.lua clears, we re-apply)
             local repBorder = ReputationXPBarTexture0
             if repBorder then
-                repBorder:SetAllPoints(ReputationWatchStatusBar)
+                repBorder:ClearAllPoints()
                 repBorder:SetPoint("TOPLEFT", ReputationWatchStatusBar, "TOPLEFT", -3, 2)
                 repBorder:SetPoint("BOTTOMRIGHT", ReputationWatchStatusBar, "BOTTOMRIGHT", 3, -7)
                 repBorder:SetDrawLayer("OVERLAY", 1)
                 repBorder:SetTexture(ExperienceBarAsset)
                 repBorder:SetTexCoord(1 / 2048, 572 / 2048, 1 / 64, 18 / 64)
-                repBorder:SetSize(571, 17)
                 repBorder:Show()
             end
 
-            -- Border: ReputationWatchBarTexture0 (noop.lua clears, we re-apply)
             local repBorder2 = ReputationWatchBarTexture0
             if repBorder2 then
-                repBorder2:SetAllPoints(ReputationWatchStatusBar)
+                repBorder2:ClearAllPoints()
                 repBorder2:SetPoint("TOPLEFT", ReputationWatchStatusBar, "TOPLEFT", -3, 2)
                 repBorder2:SetPoint("BOTTOMRIGHT", ReputationWatchStatusBar, "BOTTOMRIGHT", 3, -7)
                 repBorder2:SetDrawLayer("OVERLAY", 1)
                 repBorder2:SetTexture(ExperienceBarAsset)
                 repBorder2:SetTexCoord(1 / 2048, 572 / 2048, 1 / 64, 18 / 64)
-                repBorder2:SetSize(571, 17)
                 repBorder2:Show()
             end
 
@@ -1827,6 +1743,16 @@ end
         end
     end
 
+    -- 3.3.5a StatusBar fill width sticks after SetSize unless SetValue actually changes.
+    local function NudgeStatusBarFill(bar)
+        if not bar then return end
+        local v = bar:GetValue()
+        local vmin, vmax = bar:GetMinMaxValues()
+        if not vmax or vmax <= vmin then return end
+        bar:SetValue(vmin)
+        bar:SetValue(v)
+    end
+
     -- Position bars centered within their individual editor frames
     local function UpdateBarPositions()
         local cfg = GetXpRepConfig() or {}
@@ -1843,25 +1769,29 @@ end
         end
 
         if style == "dragonflightui" then
-            -- Resize custom bars to current config
+            -- Resize root; fixed UV so chrome stretches with SetSize (no UV∝width).
             if dfXpBar then
                 dfXpBar:SetSize(barW, barH)
-                dfXpBar.Background:SetTexCoord(0, barW / 842, 0, 1)
-                dfXpBar.Border:SetTexCoord(0, barW / 842, 0, 1)
+                dfXpBar.Background:SetTexCoord(0, 0.55517578, 0, 1)
+                dfXpBar.Border:SetTexCoord(0, 0.55517578, 0, 1)
                 dfXpBar:ClearAllPoints()
                 dfXpBar:SetPoint("CENTER", addon.ActionBarFrames.xpbar, "CENTER", 0, 0)
             end
             if dfRepBar then
                 dfRepBar:SetSize(barW, barH)
-                dfRepBar.Background:SetTexCoord(0, barW / 842, 0, 1)
-                dfRepBar.Border:SetTexCoord(0, barW / 842, 0, 1)
+                dfRepBar.Background:SetTexCoord(0, 0.55517578, 0, 1)
+                dfRepBar.Border:SetTexCoord(0, 0.55517578, 0, 1)
                 dfRepBar:ClearAllPoints()
                 dfRepBar:SetPoint("CENTER", addon.ActionBarFrames.repbar, "CENTER", 0, 0)
             end
 
-            -- Update bar values
             UpdateDragonflightUIXPBar()
             UpdateDragonflightUIRepBar()
+            if dfXpBar then
+                NudgeStatusBarFill(dfXpBar.Bar)
+                NudgeStatusBarFill(dfXpBar.RestedBar)
+            end
+            NudgeStatusBarFill(dfRepBar and dfRepBar.Bar)
 
         else -- retailui
             -- Position Blizzard XP bar centered in its editor frame
@@ -1870,6 +1800,7 @@ end
                 MainMenuExpBar:SetSize(barW, barH)
                 MainMenuExpBar:SetScale(cfg.expbar_scale or 1.0)
                 MainMenuExpBar:SetPoint("CENTER", addon.ActionBarFrames.xpbar, "CENTER", 0, 0)
+                NudgeStatusBarFill(MainMenuExpBar)
             end
 
             -- Position Blizzard Rep bar centered in its editor frame
@@ -1881,6 +1812,7 @@ end
                 if ReputationWatchStatusBar then
                     ReputationWatchStatusBar:SetAllPoints(ReputationWatchBar)
                     ReputationWatchStatusBar:SetSize(barW, barH)
+                    NudgeStatusBarFill(ReputationWatchStatusBar)
                 end
             end
         end
@@ -2707,15 +2639,15 @@ end
             -- Set up profile callbacks - Execute immediately
             do
                 if addon.db then
-                    addon.db.RegisterCallback(addon, "OnProfileChanged", function()
+                    addon.db.RegisterCallback(MainbarsModule, "OnProfileChanged", function()
                         -- Execute immediately - no timer needed
                         addon.RefreshMainbarsSystem()
                     end)
-                    addon.db.RegisterCallback(addon, "OnProfileCopied", function()
-                        -- Execute immediately - no timer needed  
+                    addon.db.RegisterCallback(MainbarsModule, "OnProfileCopied", function()
+                        -- Execute immediately - no timer needed
                         addon.RefreshMainbarsSystem()
                     end)
-                    addon.db.RegisterCallback(addon, "OnProfileReset", function()
+                    addon.db.RegisterCallback(MainbarsModule, "OnProfileReset", function()
                         -- Execute immediately - no timer needed
                         addon.RefreshMainbarsSystem()
                     end)
@@ -3383,6 +3315,14 @@ function addon.UpdateGryphonStyle()
     else
         MainMenuBarLeftEndCap:Hide()
         MainMenuBarRightEndCap:Hide()
+    end
+
+    -- Style refresh Shows endcaps; keep them invisible when background hide is on.
+    local buttonsCfg = addon.db and addon.db.profile and addon.db.profile.buttons
+    if buttonsCfg and buttonsCfg.hide_main_bar_background then
+        if addon.pUiMainBarArt then addon.pUiMainBarArt:SetAlpha(0) end
+        MainMenuBarLeftEndCap:SetAlpha(0)
+        MainMenuBarRightEndCap:SetAlpha(0)
     end
 end
 

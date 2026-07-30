@@ -23,7 +23,8 @@ local ItemLevelModule = {
 if addon.RegisterModule then
     addon:RegisterModule("itemlevel", ItemLevelModule,
         (addon.L and addon.L["Item Level"]) or "Item Level",
-        (addon.L and addon.L["Show item level on gear icons in bags, character panel, bank, and more"]) or "Show item level on gear icons in bags, character panel, bank, and more")
+        (addon.L and addon.L["Show item level on gear icons in bags, character panel, bank, and more"]) or "Show item level on gear icons in bags, character panel, bank, and more",
+        { lifecyclePrefix = "ItemLevel" })
 end
 
 -- ============================================================================
@@ -853,8 +854,6 @@ local function ApplyTooltipCVar()
     end
 end
 
-addon.ApplyItemLevelTooltipCVar = ApplyTooltipCVar
-
 -- ============================================================================
 -- HOOK INSTALLATION
 -- ============================================================================
@@ -1089,9 +1088,9 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         if arg1 == "DragonUI" then
             addon:After(0.5, function()
                 if addon.db and addon.db.RegisterCallback then
-                    addon.db.RegisterCallback(addon, "OnProfileChanged", OnProfileChanged)
-                    addon.db.RegisterCallback(addon, "OnProfileCopied", OnProfileChanged)
-                    addon.db.RegisterCallback(addon, "OnProfileReset", OnProfileChanged)
+                    addon.db.RegisterCallback(ItemLevelModule, "OnProfileChanged", OnProfileChanged)
+                    addon.db.RegisterCallback(ItemLevelModule, "OnProfileCopied", OnProfileChanged)
+                    addon.db.RegisterCallback(ItemLevelModule, "OnProfileReset", OnProfileChanged)
                 end
             end)
         elseif not IsModuleEnabled() then

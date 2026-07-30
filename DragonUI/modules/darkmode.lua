@@ -107,12 +107,18 @@ end
 
 local function DarkenTexture(texture, tint)
     if not texture then return end
+    local pr, pg, pb, pa = texture:GetVertexColor()
     if not texture.__DragonUI_OrigColor then
-        texture.__DragonUI_OrigColor = { texture:GetVertexColor() }
+        texture.__DragonUI_OrigColor = { pr, pg, pb, pa }
     end
+    -- SetVertexColor(r,g,b) resets alpha to 1 and undoes hide_main_bar_background on gryphons.
+    local keepAlpha = texture.GetAlpha and texture:GetAlpha() or 1
     texture.__DragonUI_SettingDark = true
-    texture:SetVertexColor(tint[1], tint[2], tint[3])
+    texture:SetVertexColor(tint[1], tint[2], tint[3], pa)
     texture.__DragonUI_SettingDark = nil
+    if texture.SetAlpha then
+        texture:SetAlpha(keepAlpha)
+    end
     DarkModeModule.darkenedTextures[texture] = true
 end
 
@@ -120,9 +126,13 @@ local function RestoreTexture(texture)
     if not texture then return end
     if texture.__DragonUI_OrigColor then
         local c = texture.__DragonUI_OrigColor
+        local keepAlpha = texture.GetAlpha and texture:GetAlpha() or 1
         texture.__DragonUI_SettingDark = true
         texture:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
         texture.__DragonUI_SettingDark = nil
+        if texture.SetAlpha then
+            texture:SetAlpha(keepAlpha)
+        end
         texture.__DragonUI_OrigColor = nil
     end
     DarkModeModule.darkenedTextures[texture] = nil
@@ -597,7 +607,7 @@ local function DarkenBackpackCutout(tint)
     -- Create the cutout overlay once, reuse on subsequent calls
     if not backpack.__DragonUI_DarkCutout then
         local cutout = backpack:CreateTexture(nil, "ARTWORK", nil, 7)
-        cutout:SetTexture("Interface\\AddOns\\DragonUI\\Textures\\bagslotCutout")
+        cutout:SetTexture("Interface\\AddOns\\DragonUI\\Textures\\Bags\\bagslotCutout")
         local bw, bh = backpack:GetWidth(), backpack:GetHeight()
         cutout:SetWidth(bw + 1)
         cutout:SetHeight(bh + 1)
@@ -869,6 +879,11 @@ local function ApplyDarkMode(forceAuraSync)
     DarkenAddonButtonBorders(tint)
     DarkenCompactRaidFrameManager(tint)
 
+    -- Re-pin hide_main_bar_background (art/gryphon alpha) after SetVertexColor.
+    if addon.RefreshActionBarVisibility then
+        addon.RefreshActionBarVisibility()
+    end
+
     DarkModeModule.applied = true
     SyncAuraBorderColorFromDarkMode(GetAuraBorderTintValues(), forceAuraSync == true)
 
@@ -916,6 +931,10 @@ RestoreDarkMode = function(resetAuraBorders)
     DarkModeModule.applied = false
     if resetAuraBorders then
         SyncAuraBorderColorFromDarkMode(nil, true)
+    end
+
+    if addon.RefreshActionBarVisibility then
+        addon.RefreshActionBarVisibility()
     end
 end
 
@@ -1103,9 +1122,9 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
 
         addon:After(0.5, function()
             if addon.db and addon.db.RegisterCallback then
-                addon.db.RegisterCallback(addon, "OnProfileChanged", OnProfileChanged)
-                addon.db.RegisterCallback(addon, "OnProfileCopied", OnProfileChanged)
-                addon.db.RegisterCallback(addon, "OnProfileReset", OnProfileChanged)
+                addon.db.RegisterCallback(DarkModeModule, "OnProfileChanged", OnProfileChanged)
+                addon.db.RegisterCallback(DarkModeModule, "OnProfileCopied", OnProfileChanged)
+                addon.db.RegisterCallback(DarkModeModule, "OnProfileReset", OnProfileChanged)
             end
         end)
 
@@ -1272,7 +1291,10 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         -- These fire frequently during shapeshift/flight when Blizzard resets
         -- button textures. Delay so Blizzard finishes its own vertex color changes first.
         if not DarkModeModule.applied then return end
+        if DarkModeModule.borderSweepPending then return end
+        DarkModeModule.borderSweepPending = true
         addon:After(0.05, function()
+            DarkModeModule.borderSweepPending = false
             if not DarkModeModule.applied then return end
             local tint = GetTintValues()
             DarkenActionButtonBorders(tint)

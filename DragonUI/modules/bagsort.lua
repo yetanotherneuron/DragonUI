@@ -25,7 +25,8 @@ local BagSortModule = {
 if addon.RegisterModule then
     addon:RegisterModule("bagsort", BagSortModule,
         T("Bag Sort", "Bag Sort"),
-        T("Sort bags and bank items with buttons", "Sort bags and bank items with buttons"))
+        T("Sort bags and bank items with buttons", "Sort bags and bank items with buttons"),
+        { lifecyclePrefix = "BagSort" })
 end
 
 -- ============================================================================
@@ -1689,12 +1690,12 @@ local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, sort
         b._bagsterStyled = true
         b:SetSize(22, 22)
         b.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-        b.border:SetTexture(addon._dir .. "uiactionbariconframe")
+        b.border:SetTexture(addon._dir .. "ActionBars\\uiactionbariconframe")
         b.border:ClearAllPoints()
         b.border:SetPoint("TOPRIGHT", b, "TOPRIGHT", 2.2, 2.3)
         b.border:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", -2.2, -2.2)
         if b.highlight then
-            b.highlight:SetTexture(addon._dir .. "uiactionbariconframehighlight")
+            b.highlight:SetTexture(addon._dir .. "ActionBars\\uiactionbariconframehighlight")
             b.highlight:ClearAllPoints()
             b.highlight:SetAllPoints(b.border)
         end
@@ -1856,12 +1857,12 @@ local function CreateBagsterGuildBankSortButton()
     bagsterGuildSortBtn = CreateGuildBankSortButton("DragonUI_BagsterGuildSortBtn", frame.itemFrame)
     bagsterGuildSortBtn:SetSize(22, 22)
     bagsterGuildSortBtn.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-    bagsterGuildSortBtn.border:SetTexture(addon._dir .. "uiactionbariconframe")
+    bagsterGuildSortBtn.border:SetTexture(addon._dir .. "ActionBars\\uiactionbariconframe")
     bagsterGuildSortBtn.border:ClearAllPoints()
     bagsterGuildSortBtn.border:SetPoint("TOPRIGHT", bagsterGuildSortBtn, "TOPRIGHT", 2.2, 2.3)
     bagsterGuildSortBtn.border:SetPoint("BOTTOMLEFT", bagsterGuildSortBtn, "BOTTOMLEFT", -2.2, -2.2)
     if bagsterGuildSortBtn.highlight then
-        bagsterGuildSortBtn.highlight:SetTexture(addon._dir .. "uiactionbariconframehighlight")
+        bagsterGuildSortBtn.highlight:SetTexture(addon._dir .. "ActionBars\\uiactionbariconframehighlight")
         bagsterGuildSortBtn.highlight:ClearAllPoints()
         bagsterGuildSortBtn.highlight:SetAllPoints(bagsterGuildSortBtn.border)
     end
@@ -2328,6 +2329,10 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
         ApplyBagSortSystem()
     end
 end)
+
+-- Registry lifecycle resolves these off `addon` via lifecyclePrefix "BagSort".
+addon.ApplyBagSortSystem = ApplyBagSortSystem
+addon.RestoreBagSortSystem = RestoreBagSortSystem
 
 -- Expose sort functions for other modules/macros
 addon.SortPlayerBags = SortPlayerBags
