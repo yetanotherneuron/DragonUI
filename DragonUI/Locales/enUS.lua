@@ -483,6 +483,12 @@ L["Bag Skin"] = true
 L["Retail-style skin for Blizzard bag windows"] = true
 L["Bagster"] = true
 L["All-in-one bag replacement with filtering and search"] = true
+L["Alt Gold"] = true
+L["Show the gold of your other characters when hovering the money in your bags"] = true
+L["Character Gold"] = true
+L["No other characters recorded yet"] = true
+L["(current)"] = true
+L["Total"] = true
 L["Stance Bar"] = true
 L["Vehicle"] = true
 L["Vehicle interface enhancements"] = true
@@ -545,3 +551,21 @@ L['Pointer mode (just "!")'] = true
 L["Use Questie"] = true
 L["Applying quest icon settings needs a UI reload."] = true
 L["Reload"] = true
+
+-- ============================================================================
+-- FRAME DIAGNOSTIC COMMANDS
+-- ============================================================================
+
+L["UFL diagnostic not available"] = true
+L["(unnamed)"] = true
+L["(unnamed_frame)"] = true
+L["SHOWN"] = true
+L["hidden"] = true
+L["VISIBLE"] = true
+L["invisible"] = true
+L["VIS"] = true
+L["inv"] = true
+L["Rect: left=%.1f bottom=%.1f w=%.1f h=%.1f"] = true
+L["Point1: %s -> %s %s (%.1f, %.1f)"] = true
+L["NumPoints: %d"] = true
+L["TexCoord: %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f"] = true

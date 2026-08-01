@@ -12,7 +12,9 @@ local _arialn = addon.Fonts and addon.Fonts.ARIALN or "Fonts\\ARIALN.TTF"
 local defaults = {
     global = {
         bagsterCache = {}, -- Per-character bank snapshot (realm|name keys); used by bagster module
-        questLootLearned = {} -- Learned quest loot sources for nameplates: [mobName] = {objectiveText=true}
+        characterMoney = {}, -- Gold per character (realm|name keys); used by the altmoney tooltip
+        questLootLearned = {}, -- Learned quest loot sources for nameplates: [mobName] = {objectiveText=true}
+        auraDurations = {} -- Observed debuff durations for nameplates: [spellId] = seconds
     },
     profile = {
         version = 1,
@@ -393,6 +395,9 @@ local defaults = {
 
         style = {
             gryphons = 'new',
+            gryphonScale = 1,
+            gryphonOffsetX = 0,
+            gryphonOffsetY = 0,
             xpbar = 'dragonflightui',
             exhaustion_tick = true -- Show exhaustion tick (on by default)
         },
@@ -519,7 +524,7 @@ local defaults = {
             visibility_logic = "and",
         },
 
-        --  BUFFS SETTINGS (NEW)
+        --  BUFFS SETTINGS 
         buffs = {
             enabled = true,
             show_toggle_button = true,
@@ -529,8 +534,8 @@ local defaults = {
             debuff_horizontal_gap = 0,
             buff_scale = 1,
             debuff_scale = 1,
-            buffs_per_row = 16,
-            debuffs_per_row = 16,
+            buffs_per_row = 12,
+            debuffs_per_row = 12,
             max_buff_rows = 0,
             max_debuff_rows = 0,
             buff_vertical_gap = 15,
@@ -553,6 +558,7 @@ local defaults = {
             sizeY = 16,
             showIcon = false,
             sizeIcon = 27,
+            modernIconBorder = true,
             holdTime = 0.3,
             holdTimeInterrupt = 0.8,
 
@@ -577,6 +583,7 @@ local defaults = {
                 sizeY = 10,
                 showIcon = true,
                 sizeIcon = 20,
+                modernIconBorder = true,
                 holdTime = 0.3,
                 holdTimeInterrupt = 0.8,
                 anchorFrame = 'TargetFrame',
@@ -599,6 +606,7 @@ local defaults = {
                 sizeY = 10,
                 showIcon = true,
                 sizeIcon = 20,
+                modernIconBorder = true,
                 holdTime = 0.3,
                 holdTimeInterrupt = 0.8,
                 anchorFrame = 'FocusFrame',
@@ -918,6 +926,7 @@ local defaults = {
                 castBarOffTargetSafeOnly = true, -- legacy mirror of safe mode (now the default)
                 castBarPvPAggressive = false, -- legacy reaction filter (no longer exposed in UI)
                 showPartyRaidCastBars = false, -- show cast bars on party/raid member nameplates
+                castBarModernIconBorder = true, -- action-bar style frame around the cast icon
                 castBarHeight = 9, -- height of the cast bar in pixels
                 castBarGap = 3, -- vertical gap between health, power, and cast bars
                 showCastBarSpellName = false, -- show the spell name text on the cast bar
@@ -926,6 +935,7 @@ local defaults = {
                 castBarSpellNameOffsetY = 0, -- vertical offset for the cast bar spell name text
                 threatGlow = true, -- show threat glow indicator (colored border)
                 tankMode = false, -- invert threat colors for a tank perspective (holding aggro = green)
+                dpsMode = false, -- ThreatPlates-style DPS threat colors (in combat); exclusive with tankMode
                 raidMarkHealthColor = false, -- tint health bar by raid marker, allies and enemies alike
                 tapDeniedGray = true, -- gray health bar when unit is tapped by another player/group (GUID memory)
                 showTargetHighlight = true,
@@ -940,9 +950,39 @@ local defaults = {
                 debuffCooldownTextAnchor = "center", -- "center" | "topleft" | "topright" | "bottomleft" | "bottomright"
                 debuffOnlyTargetFocus = false, -- only show debuffs on target/focus plates
                 debuffOnlyMine = false, -- only show debuffs the player applied
+                debuffIncludeOtherCC = true, -- let anyone's crowd control through the "only mine" filter
                 debuffFilterMode = "all", -- "all" | "whitelist" | "blacklist"
                 debuffFilterList = "", -- comma-separated spell IDs for whitelist/blacklist
-                debuffHighlightCC = false, -- colored border for crowd-control/lockout debuffs (curated spell list)
+                debuffModernIconBorder = true, -- action-bar style frame around debuff icons
+                debuffHighlightCC = true, -- colored border by aura category (crowd control, defensive, dispel type)
+                showBuffs = false, -- show enemy buffs in the same row as debuffs, ordered by rank
+                buffFilterMode = "purgeable", -- "purgeable" | "all" | "whitelist" | "blacklist"
+                buffFilterList = "", -- comma-separated spell IDs for whitelist/blacklist
+                -- Editable so the panel can show exactly which buffs count as defensive.
+                defensiveBuffList = "642,1022,5599,10278,498,5573,45438,48707,48792,31224,5277,19263,23920,871,12975,22812,61336,33206,47585,46924,8178,51690,1719,12292,47788,6940,64205,70940,3411,55694,30823,55233,49222,19574,34471,53480,45182,66,5384",
+                ccExtraList = "", -- extra spell IDs treated as crowd control on top of the built-in list
+                showFriendlyAuras = false, -- show auras on friendly plates (never "all", always a criterion)
+                friendlyIncludeCC = true, -- also show crowd control on allies, listed or not
+                friendlyIncludeDefensive = true, -- also show the defensive cooldowns from defensiveBuffList
+                friendlyIncludeAllDebuffs = false, -- show every debuff on allies, not just the curated ones
+                -- Battleground flags and support cooldowns: what you want to spot on an ally at a glance.
+                friendlyAuraFilterList = "23333,23335,34976,29166,10060,2825,32182,53563,1044,6940,47788,64843,31821",
+                auraSortMode = "priority", -- "priority" (own CC first) | "chronological" (expiration only)
+                auraHighlightMode = "cc", -- which auras draw larger: "cc" | "list" | "ccAndList" | "none"
+                auraHighlightList = "", -- extra spell IDs drawn at the highlight size
+                auraHighlightScale = 1.35, -- size multiplier for highlighted auras
+                auraColorCCEnabled = false, -- give crowd control its own color instead of its dispel type
+                -- Blizzard's DebuffTypeColor values, editable. "none" is what a debuff with no dispel type uses.
+                auraColors = {
+                    none = { r = 0.80, g = 0, b = 0 },
+                    Magic = { r = 0.20, g = 0.60, b = 1.00 },
+                    Curse = { r = 0.60, g = 0.00, b = 1.00 },
+                    Disease = { r = 0.60, g = 0.40, b = 0 },
+                    Poison = { r = 0.00, g = 0.60, b = 0 },
+                    Enrage = { r = 1.00, g = 0.55, b = 0.15 },
+                    Buff = { r = 0.35, g = 0.70, b = 1.00 },
+                    CrowdControl = { r = 1.00, g = 0.25, b = 0.25 },
+                },
                 debuffOffsetX = 0, -- horizontal offset for the debuff icon row
                 debuffOffsetY = 0, -- vertical offset for the debuff icon row
                 showDebuffPositionDebug = false, -- persistent debug box showing debuff row bounds
@@ -1172,6 +1212,10 @@ local defaults = {
                 lock_hotkey = "ALT_LEFT", -- Modifier + mouse button used to lock or unlock a slot
                 lock_color = { 0.15, 0.80, 1.00, 0.95 }, -- Tint applied to the locked-slot padlock icon
                 reverse_stack = false, -- Stack items from the end so new loot appears at the top
+            },
+            altmoney = {
+                enabled = true, -- Other characters' gold on the bag money tooltip
+                show_all_realms = true, -- Include characters from other realms in the list
             },
             unitframe_layers = {
                 enabled = false, -- Heal prediction, absorb shields, animated health loss overlays on unit frames

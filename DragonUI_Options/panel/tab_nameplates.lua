@@ -217,7 +217,7 @@ local subTabs = {
     { key = "bars",     label = LO["Bars"] },
     { key = "icons",    label = LO["Icons"] },
     { key = "quest",    label = LO["Quest"] },
-    { key = "debuffs",  label = LO["Debuffs"] },
+    { key = "debuffs",  label = LO["Auras"] },
 }
 
 function addon.SetNameplateSubTab(key)
@@ -543,11 +543,29 @@ local function BuildLayoutSubTab(scroll)
 
     local clickboxSection = C:AddSection(scroll, LO["Clickbox"])
 
+    local CLICKBOX_AUTO_SHOW_IDLE = 3
+    local showClickboxToggle
+
+    local function RefreshShowClickboxWidget(value)
+        local panel = addon.OptionsPanel
+        if not (panel and panel.IsOpen and panel:IsOpen()) then return end
+        if showClickboxToggle and showClickboxToggle.SetValue then
+            showClickboxToggle:SetValue(value and true or false)
+        end
+    end
+
     local function OnClickboxSliderChanged()
         RefreshNameplates()
-        if addon.Nameplates and addon.Nameplates.clickbox then
-            addon.Nameplates.clickbox.EnablePreview(10)
+        local NP = addon.Nameplates
+        if not (NP and NP.clickbox and NP.module) then return end
+        if not C:GetDBValue(DB .. ".showClickbox") then
+            C:SetDBValue(DB .. ".showClickbox", true)
+            -- Flags the Show as ours, so only an auto-enable is auto-disabled when the sliders go idle.
+            NP.module._clickboxSliderAutoShow = true
+            RefreshShowClickboxWidget(true)
         end
+        NP.module._clickboxSliderIdleUntil = GetTime() + CLICKBOX_AUTO_SHOW_IDLE
+        NP.clickbox.RefreshAllOverlays()
     end
 
     C:AddSlider(clickboxSection, {
@@ -577,18 +595,25 @@ local function BuildLayoutSubTab(scroll)
         callback = OnClickboxSliderChanged,
     })
 
-    C:AddToggle(clickboxSection, {
+    showClickboxToggle = C:AddToggle(clickboxSection, {
         label = LO["Show Clickbox"],
         desc = LO["Displays the box selection space (clickbox) of nameplates."],
         dbPath = DB .. ".showClickbox",
         callback = function()
-            if addon.Nameplates and addon.Nameplates.clickbox then
-                addon.Nameplates.module._clickboxPreviewUntil = nil
-                addon.Nameplates.clickbox.RefreshAll()
-                addon.Nameplates.clickbox.RefreshAllOverlays()
+            local NP = addon.Nameplates
+            if NP and NP.clickbox and NP.module then
+                -- Toggling by hand takes ownership of the setting; drop any pending auto-off.
+                NP.module._clickboxSliderAutoShow = nil
+                NP.module._clickboxSliderIdleUntil = nil
+                NP.clickbox.RefreshAll()
+                NP.clickbox.RefreshAllOverlays()
             end
         end,
     })
+
+    if addon.Nameplates and addon.Nameplates.module then
+        addon.Nameplates.module._clickboxToggleRefresh = RefreshShowClickboxWidget
+    end
 end
 
 local function BuildHealthSubTab(scroll)
@@ -987,12 +1012,36 @@ local function BuildTargetSubTab(scroll)
         callback = RefreshNameplates,
     })
 
-    C:AddToggle(targetThreat, {
-        label = LO["Tank Mode"],
-        desc = LO["Inverts threat colors for a tank: green means you hold aggro, red means you lost it."],
-        dbPath = DB .. ".tankMode",
-        callback = RefreshNameplates,
-    })
+    -- Tank Mode / DPS Mode are mutually exclusive — enabling one clears the other.
+    local function AddThreatRoleToggle(roleKey, otherKey, label, desc)
+        C:AddToggle(targetThreat, {
+            label = label,
+            desc = desc,
+            dbPath = DB .. "." .. roleKey,
+            callback = function()
+                local conflicted = C:GetDBValue(DB .. "." .. roleKey)
+                    and C:GetDBValue(DB .. "." .. otherKey)
+                if conflicted then
+                    C:SetDBValue(DB .. "." .. otherKey, false)
+                end
+                RefreshNameplates()
+                if conflicted and Panel.currentTab then
+                    Panel:SelectTab(Panel.currentTab)
+                end
+            end,
+        })
+    end
+
+    AddThreatRoleToggle(
+        "tankMode", "dpsMode",
+        LO["Tank Mode"],
+        LO["Inverts threat colors for a tank: green means you hold aggro, red means you lost it."]
+    )
+    AddThreatRoleToggle(
+        "dpsMode", "tankMode",
+        LO["DPS Mode"],
+        LO["In combat, colors by threat for DPS: green = no aggro, yellow = transition, red = you have aggro."]
+    )
 end
 
 local function BuildBarsSubTab(scroll)
@@ -1094,6 +1143,14 @@ local function BuildBarsSubTab(scroll)
         min = -20, max = 20, step = 1,
         width = 200,
         disabled = IsSpellNameDisabled,
+        callback = RefreshNameplates,
+    })
+
+    C:AddToggle(castSection, {
+        label = LO["Modern Icon Border"],
+        desc = LO["Modern Icon Border Desc"],
+        dbPath = DB .. ".castBarModernIconBorder",
+        disabled = IsCastBarDisabled,
         callback = RefreshNameplates,
     })
 
@@ -1628,7 +1685,6 @@ end
 local function BuildDebuffsSubTab(scroll)
     C:AddSpacer(scroll)
 
-    local debuffSection = C:AddSection(scroll, LO["Debuffs"])
     local function IsDebuffsDisabled()
         return not C:GetDBValue(DB .. ".showDebuffs")
     end
@@ -1638,75 +1694,138 @@ local function BuildDebuffsSubTab(scroll)
     local function IsCooldownSwipeDisabled()
         return IsDebuffsDisabled() or not C:GetDBValue(DB .. ".debuffCooldownSwipe")
     end
+    local function IsBuffsDisabled()
+        return IsDebuffsDisabled() or not C:GetDBValue(DB .. ".showBuffs")
+    end
+    local function IsColorDisabled()
+        return IsDebuffsDisabled() or not C:GetDBValue(DB .. ".debuffHighlightCC")
+    end
+    local function IsFriendlyAurasDisabled()
+        return not C:GetDBValue(DB .. ".showFriendlyAuras")
+    end
 
-    C:AddToggle(debuffSection, {
-        label = LO["Show Debuffs"],
+    local dynamicWidgets = {}
+    local function RegisterDynamicWidget(widget, disabledFunc)
+        table.insert(dynamicWidgets, { widget = widget, disabledFunc = disabledFunc })
+        return widget
+    end
+    -- Rebuilding is only needed when a control appears or disappears, not when it greys out.
+    local function RefreshDisabledStates()
+        for _, entry in ipairs(dynamicWidgets) do
+            if entry.widget and entry.widget.SetDisabled and entry.disabledFunc then
+                entry.widget:SetDisabled(entry.disabledFunc())
+            end
+        end
+        RefreshNameplates()
+    end
+    local function RebuildAuraUI()
+        RefreshNameplates()
+        if Panel and Panel.SelectTab then
+            Panel:SelectTab("nameplates")
+        end
+    end
+    local function OnPositionSliderChanged()
+        RefreshNameplates()
+        if addon.Nameplates and addon.Nameplates.auras then
+            addon.Nameplates.auras.EnablePreview(10)
+        end
+    end
+    -- Registers a control so RefreshDisabledStates can grey it out without a rebuild.
+    local function Track(widget, disabledFunc)
+        if widget and disabledFunc then RegisterDynamicWidget(widget, disabledFunc) end
+        return widget
+    end
+
+    local rowSection = C:AddSection(scroll, LO["Aura Row"])
+
+    C:AddToggle(rowSection, {
+        label = LO["Show Auras"],
+        desc = LO["Show buffs and debuffs above nameplates."],
         dbPath = DB .. ".showDebuffs",
-        callback = RefreshAndRebuildNameplates,
+        callback = RebuildAuraUI,
     })
 
-    C:AddSlider(debuffSection, {
-        label = LO["Max Debuff Icons"],
+    Track(C:AddSlider(rowSection, {
+        label = LO["Max Aura Icons"],
+        desc = LO["Buffs and debuffs share these slots."],
         dbPath = DB .. ".maxDebuffs",
         min = 1, max = 9, step = 1,
         width = 200,
         disabled = IsDebuffsDisabled,
         callback = RefreshNameplates,
-    })
+    }), IsDebuffsDisabled)
 
-    C:AddSlider(debuffSection, {
-        label = LO["Debuff Icon Size"],
-        desc = LO["Size of debuff icons on nameplates."],
+    Track(C:AddSlider(rowSection, {
+        label = LO["Aura Icon Size"],
         dbPath = DB .. ".debuffIconSize",
         min = 10, max = 42, step = 1,
         width = 200,
         disabled = IsDebuffsDisabled,
         callback = RefreshNameplates,
-    })
+    }), IsDebuffsDisabled)
 
-    C:AddToggle(debuffSection, {
-        label = LO["Show Debuff Cooldown Text"],
-        desc = LO["Show remaining debuff time on each debuff icon."],
+    Track(C:AddToggle(rowSection, {
+        label = LO["Modern Icon Border"],
+        desc = LO["Modern Icon Border Debuff Desc"],
+        dbPath = DB .. ".debuffModernIconBorder",
+        disabled = IsDebuffsDisabled,
+        callback = RefreshNameplates,
+    }), IsDebuffsDisabled)
+
+    Track(C:AddSlider(rowSection, {
+        label = LO["Aura Horizontal Offset"],
+        dbPath = DB .. ".debuffOffsetX",
+        min = -240, max = 240, step = 1,
+        width = 200,
+        disabled = IsDebuffsDisabled,
+        callback = OnPositionSliderChanged,
+    }), IsDebuffsDisabled)
+
+    Track(C:AddSlider(rowSection, {
+        label = LO["Aura Vertical Offset"],
+        dbPath = DB .. ".debuffOffsetY",
+        min = -240, max = 240, step = 1,
+        width = 200,
+        disabled = IsDebuffsDisabled,
+        callback = OnPositionSliderChanged,
+    }), IsDebuffsDisabled)
+
+    Track(C:AddToggle(rowSection, {
+        label = LO["Show Debuff Position Debug Box"],
+        desc = LO["Displays a box showing where the debuff icon row starts and ends, even when no debuffs are active."],
+        dbPath = DB .. ".showDebuffPositionDebug",
+        disabled = IsDebuffsDisabled,
+        callback = function()
+            if addon.Nameplates and addon.Nameplates.auras then
+                addon.Nameplates.module._debuffPreviewUntil = nil
+                addon.Nameplates.auras.RefreshAllPreviewOverlays()
+            end
+        end,
+    }), IsDebuffsDisabled)
+
+    C:AddSpacer(scroll)
+
+    local timerSection = C:AddSection(scroll, LO["Timers"])
+
+    Track(C:AddToggle(timerSection, {
+        label = LO["Show Cooldown Text"],
+        desc = LO["Time left on each icon."],
         dbPath = DB .. ".showDebuffCooldown",
         disabled = IsDebuffsDisabled,
-        callback = RefreshAndRebuildNameplates,
-    })
+        callback = RefreshDisabledStates,
+    }), IsDebuffsDisabled)
 
-    C:AddToggle(debuffSection, {
-        label = LO["Show Debuff Cooldown Swipe"],
-        desc = LO["Also show a radial cooldown sweep on each debuff icon."],
-        dbPath = DB .. ".debuffCooldownSwipe",
-        disabled = IsDebuffsDisabled,
-        callback = RefreshAndRebuildNameplates,
-    })
-
-    C:AddDropdown(debuffSection, {
-        label = LO["Debuff Cooldown Swipe Style"],
-        desc = LO["Choose the visual style of the cooldown sweep. These texture-based styles stay aligned while the nameplate is moving."],
-        dbPath = DB .. ".debuffCooldownSwipeStyle",
-        values = {
-            vertical = LO["Shade Fill"],
-            pie = LO["Quadrant Sweep"],
-            squareSwirl = LO["Square Radial Sweep"],
-        },
-        width = 220,
-        disabled = IsCooldownSwipeDisabled,
-        callback = RefreshNameplates,
-    })
-
-    C:AddSlider(debuffSection, {
-        label = LO["Debuff Cooldown Font Size"],
-        desc = LO["Font size for debuff remaining time text."],
+    Track(C:AddSlider(timerSection, {
+        label = LO["Cooldown Font Size"],
         dbPath = DB .. ".debuffCooldownFontSize",
         min = 6, max = 16, step = 1,
         width = 200,
         disabled = IsCooldownTextDisabled,
         callback = RefreshNameplates,
-    })
+    }), IsCooldownTextDisabled)
 
-    C:AddDropdown(debuffSection, {
-        label = LO["Debuff Cooldown Text Position"],
-        desc = LO["Choose where the debuff cooldown text is anchored on the icon."],
+    Track(C:AddDropdown(timerSection, {
+        label = LO["Cooldown Text Position"],
         dbPath = DB .. ".debuffCooldownTextAnchor",
         values = {
             center = LO["Center"],
@@ -1718,92 +1837,184 @@ local function BuildDebuffsSubTab(scroll)
         width = 220,
         disabled = IsCooldownTextDisabled,
         callback = RefreshNameplates,
-    })
+    }), IsCooldownTextDisabled)
+
+    Track(C:AddToggle(timerSection, {
+        label = LO["Show Cooldown Swipe"],
+        desc = LO["Radial sweep over the icon as it runs out."],
+        dbPath = DB .. ".debuffCooldownSwipe",
+        disabled = IsDebuffsDisabled,
+        callback = RefreshDisabledStates,
+    }), IsDebuffsDisabled)
+
+    Track(C:AddDropdown(timerSection, {
+        label = LO["Cooldown Swipe Style"],
+        dbPath = DB .. ".debuffCooldownSwipeStyle",
+        values = {
+            vertical = LO["Shade Fill"],
+            pie = LO["Quadrant Sweep"],
+            squareSwirl = LO["Square Radial Sweep"],
+        },
+        width = 220,
+        disabled = IsCooldownSwipeDisabled,
+        callback = RefreshNameplates,
+    }), IsCooldownSwipeDisabled)
 
     C:AddSpacer(scroll)
 
-    local positionSection = C:AddSection(scroll, LO["Position"])
+    local orderSection = C:AddSection(scroll, LO["Icon Order"])
 
-    local function OnDebuffPositionSliderChanged()
-        RefreshNameplates()
-        if addon.Nameplates and addon.Nameplates.auras then
-            addon.Nameplates.auras.EnablePreview(10)
-        end
+    C:AddLabel(orderSection, LO["Importance: crowd control first, then enemy defensives, then your own debuffs."])
+    C:AddLabel(orderSection, LO["Time Remaining: whatever expires soonest goes first."])
+
+    Track(C:AddDropdown(orderSection, {
+        label = LO["Order Icons By"],
+        dbPath = DB .. ".auraSortMode",
+        values = {
+            priority = LO["Importance"],
+            chronological = LO["Time Remaining"],
+        },
+        width = 220,
+        disabled = IsDebuffsDisabled,
+        callback = RefreshNameplates,
+    }), IsDebuffsDisabled)
+
+    C:AddSpacer(scroll)
+
+    local sizeSection = C:AddSection(scroll, LO["Highlighted Auras"])
+
+    C:AddLabel(sizeSection, LO["Highlighted auras draw larger than the rest."])
+
+    local function IsHighlightListDisabled()
+        local mode = C:GetDBValue(DB .. ".auraHighlightMode")
+        return IsDebuffsDisabled() or (mode ~= "list" and mode ~= "ccAndList")
+    end
+    local function IsHighlightScaleDisabled()
+        return IsDebuffsDisabled() or C:GetDBValue(DB .. ".auraHighlightMode") == "none"
     end
 
-    C:AddSlider(positionSection, {
-        label = LO["Debuff Horizontal Offset"],
-        desc = LO["Shifts the debuff icon row left or right relative to its default position."],
-        dbPath = DB .. ".debuffOffsetX",
-        min = -240, max = 240, step = 1,
-        width = 200,
+    Track(C:AddDropdown(sizeSection, {
+        label = LO["What Gets Highlighted"],
+        dbPath = DB .. ".auraHighlightMode",
+        values = {
+            cc = LO["Crowd Control"],
+            list = LO["Spell List Only"],
+            ccAndList = LO["Crowd Control + List"],
+            none = LO["Nothing"],
+        },
+        width = 220,
         disabled = IsDebuffsDisabled,
-        callback = OnDebuffPositionSliderChanged,
-    })
+        callback = RefreshDisabledStates,
+    }), IsDebuffsDisabled)
 
-    C:AddSlider(positionSection, {
-        label = LO["Debuff Vertical Offset"],
-        desc = LO["Shifts the debuff icon row up or down relative to its default position."],
-        dbPath = DB .. ".debuffOffsetY",
-        min = -240, max = 240, step = 1,
+    Track(C:AddSlider(sizeSection, {
+        label = LO["Highlight Size"],
+        desc = LO["Multiplier over the base icon size."],
+        dbPath = DB .. ".auraHighlightScale",
+        min = 1, max = 2, step = 0.05,
         width = 200,
-        disabled = IsDebuffsDisabled,
-        callback = OnDebuffPositionSliderChanged,
-    })
+        disabled = IsHighlightScaleDisabled,
+        callback = RefreshNameplates,
+    }), IsHighlightScaleDisabled)
 
-    C:AddToggle(positionSection, {
-        label = LO["Show Debuff Position Debug Box"],
-        desc = LO["Displays a box showing where the debuff icon row starts and ends, even when no debuffs are active."],
-        dbPath = DB .. ".showDebuffPositionDebug",
-        disabled = IsDebuffsDisabled,
-        callback = function()
-            if addon.Nameplates and addon.Nameplates.auras then
-                addon.Nameplates.module._debuffPreviewUntil = nil
-                addon.Nameplates.auras.RefreshAllPreviewOverlays()
-            end
-        end,
+    C:AddHeading(sizeSection, LO["Always Highlight These Spells"])
+    C:AddSpellFilterList(sizeSection, {
+        dbPath = DB .. ".auraHighlightList",
+        disabled = IsHighlightListDisabled,
+        callback = RefreshNameplates,
+        rebuildUI = RebuildAuraUI,
+        registerDynamic = RegisterDynamicWidget,
     })
 
     C:AddSpacer(scroll)
 
-    local filterSection = C:AddSection(scroll, LO["Filtering"])
+    local colorSection = C:AddSection(scroll, LO["Border Colors"])
 
-    C:AddToggle(filterSection, {
+    C:AddLabel(colorSection, LO["Blizzard's dispel colors, editable below."])
+
+    C:AddToggle(colorSection, {
+        label = LO["Colored Aura Borders"],
+        dbPath = DB .. ".debuffHighlightCC",
+        disabled = IsDebuffsDisabled,
+        callback = RefreshDisabledStates,
+    })
+
+    local dispelRow = C:AddRow(colorSection, { layout = "Flow" })
+    local dispelColors = {
+        { key = "Magic", label = LO["Magic"] },
+        { key = "Curse", label = LO["Curse"] },
+        { key = "Disease", label = LO["Disease"] },
+        { key = "Poison", label = LO["Poison"] },
+        { key = "Enrage", label = LO["Enrage"] },
+        { key = "none", label = LO["No Dispel Type"] },
+        { key = "Buff", label = LO["Buffs"] },
+    }
+    for _, entry in ipairs(dispelColors) do
+        Track(C:AddColorPicker(dispelRow, {
+            label = entry.label,
+            dbPath = DB .. ".auraColors." .. entry.key,
+            disabled = IsColorDisabled,
+            callback = RefreshNameplates,
+        }), IsColorDisabled)
+    end
+
+    local function IsCCColorDisabled()
+        return IsColorDisabled() or not C:GetDBValue(DB .. ".auraColorCCEnabled")
+    end
+
+    Track(C:AddToggle(colorSection, {
+        label = LO["Separate Color for Crowd Control"],
+        dbPath = DB .. ".auraColorCCEnabled",
+        disabled = IsColorDisabled,
+        callback = RefreshDisabledStates,
+    }), IsColorDisabled)
+
+    Track(C:AddColorPicker(colorSection, {
+        label = LO["Crowd Control"],
+        dbPath = DB .. ".auraColors.CrowdControl",
+        disabled = IsCCColorDisabled,
+        callback = RefreshNameplates,
+    }), IsCCColorDisabled)
+
+    C:AddSpacer(scroll)
+
+    local debuffSection = C:AddSection(scroll, LO["Debuffs"])
+
+    Track(C:AddToggle(debuffSection, {
         label = LO["Only Show on Target & Focus"],
-        desc = LO["Hide debuffs on every nameplate except your current target and focus."],
+        desc = LO["Hide auras on every nameplate except your target and focus."],
         dbPath = DB .. ".debuffOnlyTargetFocus",
         disabled = IsDebuffsDisabled,
         callback = RefreshNameplates,
-    })
+    }), IsDebuffsDisabled)
 
-    C:AddToggle(filterSection, {
+    local function IsOtherCCDisabled()
+        return IsDebuffsDisabled() or not C:GetDBValue(DB .. ".debuffOnlyMine")
+    end
+
+    Track(C:AddToggle(debuffSection, {
         label = LO["Only My Debuffs"],
         desc = LO["Only show debuffs you applied yourself."],
         dbPath = DB .. ".debuffOnlyMine",
         disabled = IsDebuffsDisabled,
-        callback = RefreshNameplates,
-    })
+        callback = RefreshDisabledStates,
+    }), IsDebuffsDisabled)
 
-    local dynamicWidgets = {}
-    local function RegisterDynamicWidget(widget, disabledFunc)
-        table.insert(dynamicWidgets, { widget = widget, disabledFunc = disabledFunc })
-        return widget
-    end
-    local function RefreshFilterControlStates()
-        for _, entry in ipairs(dynamicWidgets) do
-            if entry.widget and entry.widget.SetDisabled and entry.disabledFunc then
-                entry.widget:SetDisabled(entry.disabledFunc())
-            end
-        end
-    end
-    local function IsSpellListDisabled()
+    Track(C:AddToggle(debuffSection, {
+        label = LO["Always Show Others' Crowd Control"],
+        desc = LO["Enemy crowd control matters no matter who cast it."],
+        dbPath = DB .. ".debuffIncludeOtherCC",
+        disabled = IsOtherCCDisabled,
+        callback = RefreshNameplates,
+    }), IsOtherCCDisabled)
+
+    local function IsDebuffListDisabled()
         local mode = C:GetDBValue(DB .. ".debuffFilterMode")
         return IsDebuffsDisabled() or (mode ~= "whitelist" and mode ~= "blacklist")
     end
 
-    C:AddDropdown(filterSection, {
+    Track(C:AddDropdown(debuffSection, {
         label = LO["Debuff List Mode"],
-        desc = LO["Choose whether the spell list below shows only listed debuffs or hides them."],
         dbPath = DB .. ".debuffFilterMode",
         values = {
             all = LO["All"],
@@ -1812,43 +2023,133 @@ local function BuildDebuffsSubTab(scroll)
         },
         width = 220,
         disabled = IsDebuffsDisabled,
-        callback = function()
-            RefreshFilterControlStates()
-            RefreshNameplates()
-            if Panel and Panel.SelectTab then
-                Panel:SelectTab("nameplates")
-            end
-        end,
-    })
+        callback = RebuildAuraUI,
+    }), IsDebuffsDisabled)
 
-    local function RebuildDebuffFilterUI()
-        RefreshNameplates()
-        if Panel and Panel.SelectTab then
-            Panel:SelectTab("nameplates")
-        end
+    if C:GetDBValue(DB .. ".debuffFilterMode") ~= "all" then
+        C:AddHeading(debuffSection, LO["Debuff List"])
+        C:AddSpellFilterList(debuffSection, {
+            dbPath = DB .. ".debuffFilterList",
+            disabled = IsDebuffListDisabled,
+            callback = RefreshNameplates,
+            rebuildUI = RebuildAuraUI,
+            registerDynamic = RegisterDynamicWidget,
+        })
     end
 
-    C:AddSpellFilterList(filterSection, {
-        dbPath = DB .. ".debuffFilterList",
-        disabled = IsSpellListDisabled,
+    C:AddSpacer(scroll)
+
+    local buffSection = C:AddSection(scroll, LO["Enemy Buffs"])
+
+    C:AddToggle(buffSection, {
+        label = LO["Show Enemy Buffs"],
+        desc = LO["Buffs share the row with debuffs, ordered by priority."],
+        dbPath = DB .. ".showBuffs",
+        disabled = IsDebuffsDisabled,
+        callback = RebuildAuraUI,
+    })
+
+    Track(C:AddDropdown(buffSection, {
+        label = LO["Which Buffs"],
+        dbPath = DB .. ".buffFilterMode",
+        values = {
+            purgeable = LO["Purgeable & Defensive"],
+            all = LO["All"],
+            whitelist = LO["Whitelist"],
+            blacklist = LO["Blacklist"],
+        },
+        width = 220,
+        disabled = IsBuffsDisabled,
+        callback = RebuildAuraUI,
+    }), IsBuffsDisabled)
+
+    -- Only one buff list is ever relevant, so only one is ever shown.
+    local buffMode = C:GetDBValue(DB .. ".buffFilterMode") or "purgeable"
+    if buffMode == "purgeable" then
+        C:AddLabel(buffSection, LO["Shows buffs you can dispel or steal, plus the defensive cooldowns listed here."])
+        C:AddHeading(buffSection, LO["Defensive Buff List"])
+        C:AddSpellFilterList(buffSection, {
+            dbPath = DB .. ".defensiveBuffList",
+            disabled = IsBuffsDisabled,
+            callback = RefreshNameplates,
+            rebuildUI = RebuildAuraUI,
+            registerDynamic = RegisterDynamicWidget,
+        })
+    elseif buffMode == "whitelist" or buffMode == "blacklist" then
+        C:AddHeading(buffSection, LO["Buff List"])
+        C:AddSpellFilterList(buffSection, {
+            dbPath = DB .. ".buffFilterList",
+            disabled = IsBuffsDisabled,
+            callback = RefreshNameplates,
+            rebuildUI = RebuildAuraUI,
+            registerDynamic = RegisterDynamicWidget,
+        })
+    end
+
+    C:AddSpacer(scroll)
+
+    local friendlySection = C:AddSection(scroll, LO["Friendly Plates"])
+
+    C:AddToggle(friendlySection, {
+        label = LO["Show Auras on Allies"],
+        desc = LO["An ally carries dozens of auras, so you pick below what earns a slot."],
+        dbPath = DB .. ".showFriendlyAuras",
+        callback = RebuildAuraUI,
+    })
+
+    C:AddHeading(friendlySection, LO["Debuffs on the Ally"])
+
+    Track(C:AddToggle(friendlySection, {
+        label = LO["Always Show Crowd Control"],
+        desc = LO["Stuns, fears and polymorphs on an ally, listed or not."],
+        dbPath = DB .. ".friendlyIncludeCC",
+        disabled = IsFriendlyAurasDisabled,
         callback = RefreshNameplates,
-        rebuildUI = RebuildDebuffFilterUI,
+    }), IsFriendlyAurasDisabled)
+
+    Track(C:AddToggle(friendlySection, {
+        label = LO["Show All Debuffs"],
+        desc = LO["Every debuff, not just crowd control. Useful for spotting what to dispel."],
+        dbPath = DB .. ".friendlyIncludeAllDebuffs",
+        disabled = IsFriendlyAurasDisabled,
+        callback = RefreshNameplates,
+    }), IsFriendlyAurasDisabled)
+
+    C:AddHeading(friendlySection, LO["Buffs the Ally Carries"])
+
+    Track(C:AddToggle(friendlySection, {
+        label = LO["Always Show Defensive Cooldowns"],
+        desc = LO["Uses the defensive buff list from the Enemy Buffs section."],
+        dbPath = DB .. ".friendlyIncludeDefensive",
+        disabled = IsFriendlyAurasDisabled,
+        callback = RefreshNameplates,
+    }), IsFriendlyAurasDisabled)
+
+    C:AddHeading(friendlySection, LO["Also Show These Spells"])
+
+    C:AddLabel(friendlySection, LO["Listed spells always show, buff or debuff, on top of everything above."])
+    C:AddSpellFilterList(friendlySection, {
+        dbPath = DB .. ".friendlyAuraFilterList",
+        disabled = IsFriendlyAurasDisabled,
+        callback = RefreshNameplates,
+        rebuildUI = RebuildAuraUI,
         registerDynamic = RegisterDynamicWidget,
     })
 
     C:AddSpacer(scroll)
 
-    local prioritySection = C:AddSection(scroll, LO["Priority Highlight"])
+    local ccSection = C:AddSection(scroll, LO["Crowd Control"])
 
-    C:AddToggle(prioritySection, {
-        label = LO["Highlight Crowd Control"],
-        desc = LO["Adds a colored border to stuns, fears, polymorphs, silences, and other crowd control."],
-        dbPath = DB .. ".debuffHighlightCC",
+    C:AddLabel(ccSection, LO["Stuns, fears, roots and polymorphs are detected automatically. Add anything the game does not flag."])
+
+    C:AddSpellFilterList(ccSection, {
+        dbPath = DB .. ".ccExtraList",
         disabled = IsDebuffsDisabled,
         callback = RefreshNameplates,
+        rebuildUI = RebuildAuraUI,
+        registerDynamic = RegisterDynamicWidget,
     })
 end
-
 -- ============================================================================
 -- SUB-TAB DISPATCH
 -- ============================================================================

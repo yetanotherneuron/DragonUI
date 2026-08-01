@@ -39,6 +39,21 @@ function identity.UnitMatchesPlateHealth(unit, plateData)
     return abs((uh / um) - plateFrac) <= C.HEALTH_MATCH_TOLERANCE
 end
 
+-- Unlike current health, max health holds still; no comparable scale means no rejection.
+function identity.PlateMaxHealthConflicts(unit, plateData)
+    local hb = plateData and plateData.healthBar
+    if not hb or not hb.GetMinMaxValues then
+        return false
+    end
+    local _, maxVal = hb:GetMinMaxValues()
+    local um = unit and UnitExists(unit) and UnitHealthMax(unit)
+    -- Blizzard normalizes some plate bars to a percentage; those have nothing absolute to match.
+    if not maxVal or maxVal <= 100 or not um or um <= 100 then
+        return false
+    end
+    return abs(maxVal - um) > NP.max(1, um * 0.01)
+end
+
 function identity.UnitNameMatchesPlate(unit, plateData)
     local name = plateData.plateName
     if not name or not unit or not UnitExists(unit) then
@@ -94,7 +109,7 @@ end
 -- Alpha can go stale for a tick; veto with the GUID already refreshed this frame.
 function identity.IsTargetPlateVisual(plateData, hasTarget)
     if hasTarget == nil then
-        hasTarget = UnitExists("target") == 1
+        hasTarget = UnitExists("target") and true or false
     end
     if not hasTarget then
         return false
@@ -116,11 +131,21 @@ local function PlateIsMouseoverToken(plateData)
     return plate and plate.IsMouseOver and plate:IsMouseOver() or false
 end
 
--- Alpha alone goes stale on self-target (no plate); also require a fingerprint match.
+-- Alpha goes stale on self-target; name + max health + GUID veto cover it, current health can't.
 function identity.PlatePassesUnitTokenGate(plateData, unit)
     if unit == "target" then
-        return identity.PlateHasTargetAlpha(plateData)
-            and identity.PlateMatchesUnitFingerprint(plateData, unit, true)
+        if not identity.PlateHasTargetAlpha(plateData) then
+            return false
+        end
+        if not identity.UnitNameMatchesPlate(unit, plateData) then
+            return false
+        end
+        if identity.PlateMaxHealthConflicts(unit, plateData) then
+            return false
+        end
+        local plateGuid = NP.state.GetPlateGUID(plateData)
+        local targetGuid = UnitGUID(unit)
+        return not (plateGuid and targetGuid and plateGuid ~= targetGuid)
     elseif unit == "mouseover" then
         return PlateIsMouseoverToken(plateData)
     end
@@ -891,30 +916,47 @@ end
 
 -- Group cache: GUID → party/raid unit (party castbar / aura lookup).
 identity.GroupGUIDToUnit = identity.GroupGUIDToUnit or {}
+-- Plates carry a name and nothing else, so allies are only reachable by it.
+identity.GroupNameToUnit = identity.GroupNameToUnit or {}
 
 function identity.UpdateGroupCache()
     local map = identity.GroupGUIDToUnit
+    local byName = identity.GroupNameToUnit
     for k in pairs(map) do
         map[k] = nil
     end
+    for k in pairs(byName) do
+        byName[k] = nil
+    end
     local numRaid = GetNumRaidMembers() or 0
+    local prefix, count = "party", GetNumPartyMembers() or 0
     if numRaid > 0 then
-        for i = 1, numRaid do
-            local unit = "raid" .. i
-            local guid = UnitExists(unit) and UnitGUID(unit)
-            if guid then
-                map[guid] = unit
-            end
-        end
-    else
-        for i = 1, GetNumPartyMembers() or 0 do
-            local unit = "party" .. i
-            local guid = UnitExists(unit) and UnitGUID(unit)
-            if guid then
-                map[guid] = unit
+        prefix, count = "raid", numRaid
+    end
+    for i = 1, count do
+        local unit = prefix .. i
+        local guid = UnitExists(unit) and UnitGUID(unit)
+        if guid then
+            map[guid] = unit
+            local name = UnitName(unit)
+            if name then
+                byName[name] = unit
             end
         end
     end
+end
+
+function identity.GetGroupUnitByName(name)
+    local unit = name and identity.GroupNameToUnit[name]
+    if unit and UnitExists(unit) and UnitName(unit) == name then
+        return unit
+    end
+    return nil
+end
+
+function identity.GetGroupGUIDByName(name)
+    local unit = identity.GetGroupUnitByName(name)
+    return unit and UnitGUID(unit) or nil
 end
 
 function identity.GetGroupUnitByGUID(guid)
@@ -934,7 +976,15 @@ function identity.FriendlyPlateMayUseGUID(plateData, guid)
     if NP.native_style.GetPlateReaction(plateData) ~= "FRIENDLY" then
         return true
     end
-    return identity.GetGroupUnitByGUID(guid) ~= nil
+    if identity.GetGroupUnitByGUID(guid) then
+        return true
+    end
+    -- Outside the group only the name proves it, and player names are unique per realm.
+    if not NP.config.GetCfg().showFriendlyAuras then
+        return false
+    end
+    local name = plateData.plateName
+    return name ~= nil and NP.state.AuraGUIDByName[name] == guid
 end
 
 -- Group member plate: GUID map first, then unique name (ambiguous → nil).
